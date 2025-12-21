@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Įrenginio taisyklės</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { margin-bottom: 20px; }
+    label { display: block; margin: 5px 0; }
+    button { margin-top: 10px; padding: 5px 10px; cursor: pointer; }
+    #message {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 5px;
+      display: none;
+    }
+    #message.success { background-color: #d4edda; color: #155724; }
+    #message.error { background-color: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <h1 id="deviceName">Įrenginys</h1>
+  <button onclick="window.location.href='qr.html'">Grįžti į sąrašą</button>
+
+  <h2>Nustatyti taisykles</h2>
+  <form id="rulesForm">
+    <label><input type="checkbox" name="monday"> Pirmadienis</label>
+    <label><input type="checkbox" name="tuesday"> Antradienis</label>
+    <label><input type="checkbox" name="wednesday"> Trečiadienis</label>
+    <label><input type="checkbox" name="thursday"> Ketvirtadienis</label>
+    <label><input type="checkbox" name="friday"> Penktadienis</label>
+    <label><input type="checkbox" name="saturday"> Šeštadienis</label>
+    <label><input type="checkbox" name="sunday"> Sekmadienis</label>
+    <button type="button" onclick="saveRules()">Išsaugoti taisykles</button>
+  </form>
+
+  <div id="message"></div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const deviceId = urlParams.get('id');
+    const messageEl = document.getElementById('message');
+
+    function showMessage(text, type='success') {
+      messageEl.textContent = text;
+      messageEl.className = type === 'success' ? 'success' : 'error';
+      messageEl.style.display = 'block';
+      setTimeout(() => messageEl.style.display = 'none', 4000); // hide after 4s
+    }
+
+    async function loadDevice() {
+      try {
+        const res = await fetch(`/devices/${deviceId}`);
+        if (!res.ok) throw new Error("Nepavyko gauti įrenginio");
+        const device = await res.json();
+        document.getElementById('deviceName').textContent = `Įrenginys: ${device.device_name}`;
+
+        // Load existing rules
+        const rulesRes = await fetch(`/device_rules/${deviceId}`);
+        if (rulesRes.ok) {
+          const rules = await rulesRes.json();
+          rules.forEach(rule => {
+            const checkbox = document.querySelector(`input[name="${rule.rule_day.toLowerCase()}"]`);
+            if (checkbox) checkbox.checked = true;
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        showMessage("Klaida įkeliant įrenginį ar taisykles", "error");
+      }
+    }
+
+    async function saveRules() {
+      const formData = new FormData(document.getElementById('rulesForm'));
+      const rules = [];
+
+      ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(day => {
+        if (formData.get(day) === 'on') {
+          rules.push({ device_id: deviceId, rule_day: day.charAt(0).toUpperCase() + day.slice(1) });
+        }
+      });
+
+      try {
+        const res = await fetch(`/device_rules/${deviceId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rules)
+        });
+
+        if (res.ok) {
+          showMessage("Taisyklės išsaugotos!", "success");
+        } else {
+          const text = await res.text();
+          showMessage("Klaida: " + text, "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showMessage("Klaida saugant taisykles", "error");
+      }
+    }
+
+    loadDevice();
+  </script>
+</body>
+</html>

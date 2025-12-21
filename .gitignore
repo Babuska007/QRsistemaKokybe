@@ -1,0 +1,4 @@
+node_modules/
+.env
+public/qr/*.png
+.DS_Store

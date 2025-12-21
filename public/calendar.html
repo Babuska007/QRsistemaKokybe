@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <title>Kalendorius</title>
+
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    h1 { text-align: center; }
+
+    #controls {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .weekday {
+      font-weight: bold;
+      text-align: center;
+      padding: 10px 0;
+      background: #3498db;
+      color: white;
+      border-radius: 8px;
+    }
+
+    .day {
+      min-height: 100px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .day:hover {
+      background: #e1f0ff;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+    }
+
+    .day-number {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .green-dot, .red-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+    }
+    .green-dot { background: green; }
+    .red-dot  { background: red; }
+
+    #popup {
+      position: fixed;
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 380px;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      display: none;
+      z-index: 9999;
+    }
+
+    #popup .item {
+      padding: 8px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    /* Valdiklis rodomas tik paspaudus ant mėnesio */
+    #jumpControls {
+      display: none;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Kalendorius</h1>
+
+<button class="reset-btn" onclick="window.location.href='index.html'">Grįžti</button>
+
+<!-- NAVIGACIJA -->
+<div id="controls">
+  <button class="add-btn" onclick="prevMonth()">Ankstesnis</button>
+
+  <!-- Paspaudus ant mėnesio/ metų iškviečia tik datos pasirinkimo popup -->
+  <span id="monthLabel"
+        style="font-size:18px; font-weight:bold; cursor:pointer;"
+        onclick="openMonthPicker()"></span>
+
+  <button class="add-btn" onclick="nextMonth()">Kitas</button>
+</div>
+
+<!-- SAVAITĖS DIENOS -->
+<div class="calendar" id="weekdayRow">
+  <div class="weekday">Pr</div>
+  <div class="weekday">An</div>
+  <div class="weekday">Tr</div>
+  <div class="weekday">Kt</div>
+  <div class="weekday">Pn</div>
+  <div class="weekday">Še</div>
+  <div class="weekday">Sk</div>
+</div>
+
+<!-- DIENŲ TINKLELIS -->
+<div id="calendar" class="calendar"></div>
+
+<!-- POPUP -->
+<div id="popup">
+  <h2 id="popupDate"></h2>
+  <div id="popupContent"></div>
+
+  <!-- Greito pasirinkimo valdiklis – rodom TIK per openMonthPicker() -->
+  <div id="jumpControls">
+    <hr>
+
+    <label>Metai:</label>
+    <select id="fastYear" onchange="jumpFast()"></select>
+
+    <label>Mėnuo:</label>
+    <select id="fastMonth" onchange="jumpFast()">
+      <option value="1">01</option><option value="2">02</option>
+      <option value="3">03</option><option value="4">04</option>
+      <option value="5">05</option><option value="6">06</option>
+      <option value="7">07</option><option value="8">08</option>
+      <option value="9">09</option><option value="10">10</option>
+      <option value="11">11</option><option value="12">12</option>
+    </select>
+  </div>
+
+  <br>
+  <button class="reset-btn" onclick="closePopup()">Uždaryti</button>
+</div>
+
+<script>
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth() + 1;
+
+/* ---- Užpildo metų pasirinkimą (naudojama tik mėnesio picker'iui) ---- */
+
+function fillFastSelectors() {
+  const yearSel = document.getElementById("fastYear");
+  yearSel.innerHTML = "";
+
+  for (let y = 2000; y <= 2050; y++) {  // ribojimas
+    let opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y;
+    if (y === currentYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+
+  document.getElementById("fastMonth").value = currentMonth;
+}
+
+/* ---- Greitas pasirinkimas ---- */
+
+function jumpFast() {
+  currentYear = parseInt(document.getElementById("fastYear").value);
+  currentMonth = parseInt(document.getElementById("fastMonth").value);
+
+  closePopup();   // paslėpti popup
+  loadCalendar(); // įkelti naują mėnesį
+}
+
+/* ---- Mėnesių navigacija ---- */
+
+function nextMonth() {
+  currentMonth++;
+  if (currentMonth > 12) {
+    currentMonth = 1;
+    currentYear++;
+  }
+  loadCalendar();
+}
+
+function prevMonth() {
+  currentMonth--;
+  if (currentMonth < 1) {
+    currentMonth = 12;
+    currentYear--;
+  }
+  loadCalendar();
+}
+
+/* ---- Kalendoriaus generavimas ---- */
+
+async function loadCalendar() {
+  document.getElementById("monthLabel").textContent =
+    `${currentYear}-${String(currentMonth).padStart(2,"0")}`;
+
+  const res = await fetch(`/calendar/month?year=${currentYear}&month=${currentMonth}`);
+  const data = await res.json();
+
+  const calendar = document.getElementById("calendar");
+  calendar.innerHTML = "";
+
+  let firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+  if (firstDay === 0) firstDay = 7;
+
+  for (let i = 1; i < firstDay; i++) {
+    calendar.innerHTML += `<div></div>`;
+  }
+
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey =
+      `${currentYear}-${String(currentMonth).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+    const scans = data[dateKey] || [];
+    let dots = "";
+
+    scans.forEach(s => {
+      dots += s.is_scanned
+        ? `<span class='green-dot'></span>`
+        : `<span class='red-dot'></span>`;
+    });
+
+    calendar.innerHTML += `
+      <div class="day" onclick="openDay('${dateKey}')">
+        <div class="day-number">${day}</div>
+        <div>${dots}</div>
+      </div>`;
+  }
+}
+
+/* ---- Popup: paspaudus ant DIENOS – RODO TIK SCANUS ---- */
+
+async function openDay(date) {
+  const res = await fetch(`/calendar/month?year=${currentYear}&month=${currentMonth}`);
+  const data = await res.json();
+  const scans = data[date] || [];
+
+  document.getElementById("popupDate").textContent = date;
+
+  const content = document.getElementById("popupContent");
+  content.innerHTML = "";
+
+  if (scans.length === 0) {
+    content.innerHTML = "<p>Šią dieną nėra skenavimų</p>";
+  } else {
+    scans.forEach(s => {
+      content.innerHTML += `
+        <div class="item">
+          <b>${s.device_name}</b><br>
+          ${s.is_scanned ? "✔ Nuskenuota" : "❌ Nenuskenuota"}<br>
+          ${s.scan_timestamp}<br>
+          ${s.user_name ?? ""}
+        </div>`;
+    });
+  }
+
+  document.getElementById("jumpControls").style.display = "none";
+  document.getElementById("popup").style.display = "block";
+}
+
+/* ---- Popup: paspaudus ant 2025-12 (monthLabel) – TIK DATOS PASIRINKIMAS ---- */
+
+function openMonthPicker() {
+  document.getElementById("popupDate").textContent = "Pasirinkite datą";
+  document.getElementById("popupContent").innerHTML = ""; // nenaudojam scanų
+
+  fillFastSelectors();
+  document.getElementById("jumpControls").style.display = "block";
+  document.getElementById("popup").style.display = "block";
+}
+
+function closePopup() {
+  document.getElementById("popup").style.display = "none";
+  document.getElementById("jumpControls").style.display = "none";
+}
+
+loadCalendar();
+</script>
+
+</body>
+</html>

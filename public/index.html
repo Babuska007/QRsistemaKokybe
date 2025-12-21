@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Įrenginių priežiūros žurnalas</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    button { margin-bottom: 10px; padding: 5px 10px; cursor: pointer; }
+    #filterDiv { display: none; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Sąrašas</h1>
+
+  <button class="add-btn" onclick="toggleFilters()">Filtruoti</button>
+  <button onclick="exportLogs()">Eksportuoti</button>
+  <button onclick="window.location.href='qr.html'">QR</button>
+  <button onclick="window.location.href='users.html'">Naudotojai</button>
+  <button onclick="window.location.href='calendar.html'">Kalendorius</button>
+
+
+  <div id="filterDiv">
+  <label>Įrenginio pavadinimas:</label>
+  <select id="filterName">
+    <option value="">Visi įrenginiai</option>
+  </select>
+
+  <label>nuo:</label>
+  <input type="date" id="filterFrom" />
+  <label>iki:</label>
+  <input type="date" id="filterTo" />
+  <label>Ar nuskenuota:</label>
+  <select id="filterScanned">
+    <option value="">Visi</option>
+    <option value="1">Taip</option>
+    <option value="0">Ne</option>
+  </select>
+  <label>Vartotojas:</label>
+  <select id="filterUser">
+    <option value="">Visi</option>
+  </select>
+  <button class="add-btn" onclick="applyFilters()">Taikyti filtrą</button>
+  <button class="reset-btn" onclick="resetFilters()">Atstatyti filtrus</button>
+</div>
+
+
+  <script>
+    function resetFilters() {
+      document.getElementById('filterName').value = '';
+      document.getElementById('filterFrom').value = '';
+      document.getElementById('filterTo').value = '';
+      document.getElementById('filterScanned').value = '';
+      document.getElementById('filterUser').value = '';
+      loadLogs();
+    }
+  </script>
+
+  <!-- Table -->
+  <table id="logs">
+    <tr>
+      <th>Įrenginio pavadinimas</th>
+      <th>Laikas</th>
+      <th>Ar nuskenuota</th>
+      <th>Kas nuskenavo</th>
+    </tr>
+  </table>
+
+
+  <script>
+    async function loadLogs(params = '') {
+      try {
+        const res = await fetch('/logs?' + params);
+        const logs = await res.json();
+
+        const table = document.getElementById('logs');
+        table.innerHTML = `
+          <tr>
+            <th>Įrenginio pavadinimas</th>
+            <th>Laikas</th>
+            <th>Ar nuskenuota</th>
+            <th>Kas nuskenavo</th>
+          </tr>
+        `;
+
+        logs.forEach(log => {
+          table.innerHTML += `<tr>
+            <td>${log.device_name}</td>
+            <td>${log.scan_timestamp}</td>
+            <td>${Number(log.is_scanned) ? "✔️ Taip" : "❌ Ne"}</td>
+            <td>${log.user_name || ''}</td>
+          </tr>`;
+        });
+      } catch (err) {
+        console.error("Error loading logs:", err);
+      }
+    }
+
+      async function loadDevices() {
+    const select = document.getElementById('filterName');
+    if (select.options.length > 1) return;
+
+    try {
+      const res = await fetch('/devices');
+      const devices = await res.json();
+
+      devices.forEach(device => {
+        const option = document.createElement('option');
+        option.value = device.id;              
+        option.textContent = device.device_name; 
+        select.appendChild(option);
+      });
+    } catch (err) {
+      console.error("Error loading devices:", err);
+    }
+  }
+
+
+    function toggleFilters() {
+      const filterDiv = document.getElementById('filterDiv');
+      if (filterDiv.style.display === 'none' || filterDiv.style.display === '') {
+        filterDiv.style.display = 'block';
+        loadDevices();
+        loadUsers();
+      } else {
+        filterDiv.style.display = 'none';
+      }
+    }
+
+function applyFilters() {
+  const deviceId = document.getElementById('filterName').value; 
+  const user = document.getElementById('filterUser').value.trim();
+  const from = document.getElementById('filterFrom').value;
+  const to = document.getElementById('filterTo').value;
+  const scanned = document.getElementById('filterScanned').value;
+
+  const params = new URLSearchParams();
+  if (deviceId) params.append('deviceId', deviceId); 
+  if (user) params.append('user', user);
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
+  if (scanned !== '') params.append('scanned', scanned);
+
+  loadLogs(params.toString());
+}
+
+
+async function loadUsers() {
+  const select = document.getElementById("filterUser");
+
+  try {
+    const res = await fetch('/users');
+    const users = await res.json();
+
+    users.forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = `${u.first_name} ${u.last_name}`;
+      opt.textContent = `${u.first_name} ${u.last_name}`;
+      select.appendChild(opt);
+    });
+
+  } catch (err) {
+    console.error("Error loading users:", err);
+  }
+}
+async function exportLogs() {
+  const deviceId = document.getElementById('filterName').value;
+  const user = document.getElementById('filterUser').value.trim();
+  const from = document.getElementById('filterFrom').value;
+  const to = document.getElementById('filterTo').value;
+
+  const params = new URLSearchParams();
+  if (deviceId) params.append('deviceId', deviceId);
+  if (user) params.append('user', user);
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
+
+  try {
+    const res = await fetch('/logs?' + params.toString());
+    const logs = await res.json();  
+
+        if (logs.length === 0) {
+          alert("Nėra duomenų eksportavimui");
+          return;
+        }
+
+        let fileName = prompt("Įveskite failo pavadinimą:", "zurnalas");
+        if (!fileName) return;
+        if (!fileName.endsWith(".csv")) fileName += ".csv";
+
+      let csv = `"Įrenginio pavadinimas";"Laikas";"Ar nuskenuota";"Kas nuskenavo"\n`;
+      logs.forEach(log => {
+        csv += `"${log.device_name}";"${log.scan_timestamp}";"${log.is_scanned ? "TAIP" : "NE"}";"${log.user_name || ""}"\n`;
+      });
+
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Error exporting logs:", err);
+        alert("Klaida eksportuojant žurnalą");
+      }
+    }
+
+    loadLogs();
+  </script>
+</body>
+</html>

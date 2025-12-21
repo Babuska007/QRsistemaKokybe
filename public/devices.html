@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Įrenginiai ir QR kodai</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    button { margin-bottom: 10px; padding: 5px 10px; cursor: pointer; }
+    #filterDiv { display: none; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Įrenginiai</h1>
+
+  <div id="message"></div>
+
+  <!-- Create new device -->
+  <div id="createDeviceForm">
+    <input type="text" id="deviceName" placeholder="Įrenginio pavadinimas" />
+    <select id="qrSelect">
+      <option value="">Pasirinkite QR kodą</option>
+    </select>
+    <button onclick="createDevice()">Sukurti įrenginį</button>
+    <button class="reset-btn" onclick="window.location.href='index.html'">Grįžti</button>
+  </div>
+
+  <table id="devices">
+    <tr>
+      <th>Pavadinimas</th>
+      <th>QR kodas</th>
+      <th>QR vaizdas</th>
+      <th>Veiksmai</th>
+    </tr>
+  </table>
+
+  <script>
+    const messageEl = document.getElementById('message');
+
+    function showMessage(text, type='success') {
+      messageEl.textContent = text;
+      messageEl.className = type === 'success' ? 'success' : 'error';
+      messageEl.style.display = 'block';
+      setTimeout(() => messageEl.style.display = 'none', 4000);
+    }
+
+    async function loadDevices() {
+      try {
+        const res = await fetch('/devices');
+        const devices = await res.json();
+        const table = document.getElementById('devices');
+        table.innerHTML = `<tr>
+          <th>Pavadinimas</th>
+          <th>QR kodas</th>
+          <th>QR vaizdas</th>
+          <th>Veiksmai</th>
+        </tr>`;
+
+        devices.forEach(d => {
+          table.innerHTML += `<tr>
+            <td>${d.device_name}</td>
+            <td>${d.qr_code || ''}</td>
+            <td>${d.qr_image ? `<a href="${d.qr_image}" target="_blank"><img src="${d.qr_image}" width="100"/></a>` : ''}</td>
+            <td style="white-space: nowrap;">
+              ${d.qr_id ? '' : `<button onclick="window.location.href='device.html?id=${d.id}'">Taisyklės</button>`}
+              <button class="reset-btn" onclick="deleteDevice(${d.id})">Ištrinti</button>
+            </td>
+          </tr>`;
+        });
+      } catch (err) {
+        console.error(err);
+        showMessage("Klaida įkeliant įrenginius", "error");
+      }
+    }
+
+    async function loadQRCodes() {
+      try {
+        const res = await fetch('/qrcodes');
+        const qrcodes = await res.json();
+        const select = document.getElementById('qrSelect');
+        select.innerHTML = '<option value="">Pasirinkite QR kodą</option>';
+        qrcodes.forEach(q => {
+          select.innerHTML += `<option value="${q.qr_id}">${q.qr_code}</option>`;
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function createDevice() {
+      const device_name = document.getElementById('deviceName').value.trim();
+      const qr_id = document.getElementById('qrSelect').value || null;
+      if (!device_name) return showMessage("Įveskite pavadinimą", "error");
+
+      try {
+        const res = await fetch('/devices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ device_name, qr_id })
+        });
+
+        if (res.ok) {
+          document.getElementById('deviceName').value = '';
+          document.getElementById('qrSelect').value = '';
+          loadDevices();
+          loadQRCodes();
+          showMessage("Įrenginys sukurtas", "success");
+        } else {
+          const text = await res.text();
+          showMessage("Klaida: " + text, "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showMessage("Klaida kuriant įrenginį", "error");
+      }
+    }
+
+    async function deleteDevice(id) {
+      if (!confirm("Ar tikrai norite ištrinti įrenginį?")) return;
+
+      try {
+        const res = await fetch(`/devices/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          loadDevices();
+          loadQRCodes();
+          showMessage("Įrenginys ištrintas", "success");
+        } else {
+          const text = await res.text();
+          showMessage("Klaida: " + text, "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showMessage("Klaida trinant įrenginį", "error");
+      }
+    }
+
+    async function assignQR(deviceId) {
+      const qr_id = prompt("Įveskite QR ID arba pasirinkite iš sąrašo");
+      if (!qr_id) return;
+
+      try {
+        const res = await fetch(`/devices/${deviceId}/assign_qr`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qr_id })
+        });
+        if (res.ok) {
+          loadDevices();
+          showMessage("QR kodas priskirtas įrenginiui", "success");
+        } else {
+          const text = await res.text();
+          showMessage("Klaida: " + text, "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showMessage("Klaida priskiriant QR kodą", "error");
+      }
+    }
+
+    loadDevices();
+    loadQRCodes();
+  </script>
+</body>
+</html>

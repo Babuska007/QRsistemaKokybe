@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <title>Prisijungimo kodai</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    input { padding: 5px; margin-right: 5px; }
+    button { padding: 5px 10px; cursor: pointer; }
+    #message {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 5px;
+      display: none;
+    }
+    #message.success { background-color: #d4edda; color: #155724; }
+    #message.error { background-color: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <h1>Naudotojų kodai</h1>
+
+  <div>
+    <input type="text" id="firstName" placeholder="Vardas">
+    <input type="text" id="lastName"  placeholder="Pavardė">
+    <input type="text" id="pinCode"   placeholder="4 skaitmenys" maxlength="4">
+    <button onclick="createCode()">Sukurti kodą</button>
+    <button class="reset-btn" onclick="window.location.href='index.html'">Grįžti</button>
+  </div>
+
+  <div id="message"></div>
+
+  <table id="codesTable">
+    <tr>
+      <th>Vardas</th>
+      <th>Pavardė</th>
+      <th>Kodas</th>
+      <th>Sukurta</th>
+      <th>Veiksmai</th>
+    </tr>
+  </table>
+
+  <script>
+    const msgEl = document.getElementById('message');
+
+    function showMessage(text, type='success') {
+      msgEl.textContent = text;
+      msgEl.className = type === 'success' ? 'success' : 'error';
+      msgEl.style.display = 'block';
+      setTimeout(() => msgEl.style.display = 'none', 4000);
+    }
+
+    async function loadCodes() {
+      try {
+        const res = await fetch('/users');
+        const codes = await res.json();
+
+        const table = document.getElementById('codesTable');
+        table.innerHTML = `
+          <tr>
+            <th>Vardas</th>
+            <th>Pavardė</th>
+            <th>Kodas</th>
+            <th>Sukurta</th>
+            <th>Veiksmai</th>
+          </tr>
+        `;
+
+        codes.forEach(c => {
+          table.innerHTML += `
+            <tr>
+              <td>${c.first_name}</td>
+              <td>${c.last_name}</td>
+              <td>${c.pin_code}</td>
+              <td>${c.created_at}</td>
+              <td>
+                <button class="reset-btn" onclick="deleteCode(${c.id})">Ištrinti</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error(err);
+        showMessage("Klaida įkeliant kodus", "error");
+      }
+    }
+
+    async function createCode() {
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName  = document.getElementById('lastName').value.trim();
+      const pinCode   = document.getElementById('pinCode').value.trim();
+
+      if (!firstName || !lastName || !pinCode) {
+        return showMessage("Užpildykite visus laukus", "error");
+      }
+      if (!/^\d{4}$/.test(pinCode)) {
+        return showMessage("Kodas turi būti 4 skaitmenys", "error");
+      }
+
+      try {
+        const res = await fetch('/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ first_name: firstName, last_name: lastName, pin_code: pinCode })
+        });
+
+        const text = await res.text();
+
+        if (res.ok) {
+          document.getElementById('firstName').value = '';
+          document.getElementById('lastName').value = '';
+          document.getElementById('pinCode').value = '';
+          showMessage("Kodas sukurtas", "success");
+          loadCodes();
+        } else {
+          showMessage("Klaida: " + text, "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showMessage("Klaida kuriant kodą", "error");
+      }
+    }
+
+    async function deleteCode(id) {
+      if (!confirm("Ar tikrai norite ištrinti šį kodą?")) return;
+
+      try {
+        const res = await fetch('/users/' + id, { method: 'DELETE' });
+        const text = await res.text();
+        if (res.ok) {
+          showMessage("Kodas ištrintas", "success");
+          loadCodes();
+        } else {
+          showMessage("Klaida: " + text, "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showMessage("Klaida trinant kodą", "error");
+      }
+    }
+
+    loadCodes();
+  </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+/* --- Global Styles --- */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f2f5;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+
+h1, h2 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+/* --- Container --- */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+/* --- Card Style --- */
+.card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* --- Table Styling --- */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+}
+
+th, td {
+  padding: 12px 15px;
+  text-align: left;
+}
+
+th {
+  background-color: #3498db;
+  color: #fff;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+tr:hover {
+  background-color: #e1f0ff;
+  transition: background-color 0.2s;
+}
+
+/* --- Buttons --- */
+button {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background-color: #3498db;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background-color: #217dbb;
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* --- Forms / Filters --- */
+#filterDiv, #addDeviceForm {
+  display: none;
+  margin-bottom: 15px;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+input, select {
+  padding: 8px 12px;
+  margin-right: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s;
+}
+
+input:focus, select:focus {
+  border-color: #3498db;
+}
+
+    .reset-btn {
+      background-color: #e74c3c; /* raudona */
+      color: #fff;
+    }
+
+    .reset-btn:hover {
+      background-color: #c0392b; /* tamsesnė raudona */
+    }
+    .add-btn {
+      background-color: #28a745;
+      color: #fff;
+    }
+
+    .add-btn:hover {
+      background-color: #218838; /* tamsesnė raudona */
+    }
+
+/* --- Images in table --- */
+img {
+  display: block;
+  margin: 0 auto;
+  max-width: 50px;
+  border-radius: 6px;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  table, th, td {
+    font-size: 14px;
+  }
+
+  button {
+    padding: 6px 12px;
+  }
+}
