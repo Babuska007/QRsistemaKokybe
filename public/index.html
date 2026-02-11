@@ -1,214 +1,429 @@
 <!DOCTYPE html>
-<html>
+<html lang="lt">
 <head>
+  <meta charset="UTF-8">
   <title>Įrenginių priežiūros žurnalas</title>
   <link rel="stylesheet" href="styles.css">
+
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    button { margin-bottom: 10px; padding: 5px 10px; cursor: pointer; }
-    #filterDiv { display: none; margin-bottom: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    /* ==== CITY TABS ==== */
+    .city-tabs {
+      display: flex;
+      gap: 12px;
+      background: #f0f2f5;
+      border-radius: 0 0 14px 14px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      padding: 10px;
+    }
+
+    .city-tab {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      background-color: transparent;
+      color: #217dbb;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .city-tab:hover {
+      background: rgba(58, 102, 143, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .city-tab.active {
+      background-color: #3498db;
+      color: #ffffff;
+      font-weight: 500;
+      transform: none;
+    }
+
+    /* ==== TABLE ==== */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    button {
+      margin-top: 5px;
+      margin-bottom: 10px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+
+    #filterDiv {
+      display: none;
+      margin-bottom: 15px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    /* ==== FILTER GRID ==== */
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .filter-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .filter-field label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    .filter-field select,
+    .filter-field input {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      color: #333;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .filter-field select:focus,
+    .filter-field input:focus {
+      border-color: #3498db;
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
   </style>
 </head>
+
 <body>
-  <h1>Sąrašas</h1>
 
-  <button class="add-btn" onclick="toggleFilters()">Filtruoti</button>
-  <button onclick="exportLogs()">Eksportuoti</button>
-  <button onclick="window.location.href='qr.html'">QR</button>
-  <button onclick="window.location.href='users.html'">Naudotojai</button>
-  <button onclick="window.location.href='calendar.html'">Kalendorius</button>
+<!-- ===== CITY TABS ===== -->
+<div class="city-tabs" id="cityTabs"></div>
 
+<h1>Sąrašas</h1>
 
-  <div id="filterDiv">
-  <label>Įrenginio pavadinimas:</label>
-  <select id="filterName">
-    <option value="">Visi įrenginiai</option>
-  </select>
+<button onclick="toggleFilters()">Filtruoti</button>
+<button onclick="exportLogs()">Eksportuoti</button>
+<button onclick="location.href='qr.html'">QR</button>
+<button onclick="location.href='users.html'">Naudotojai</button>
+<button onclick="location.href='groups.html'">Sistemų grupės</button>
+<button onclick="location.href='calendar.html'">Kalendorius</button>
 
-  <label>nuo:</label>
-  <input type="date" id="filterFrom" />
-  <label>iki:</label>
-  <input type="date" id="filterTo" />
-  <label>Ar nuskenuota:</label>
-  <select id="filterScanned">
-    <option value="">Visi</option>
-    <option value="1">Taip</option>
-    <option value="0">Ne</option>
-  </select>
-  <label>Vartotojas:</label>
-  <select id="filterUser">
-    <option value="">Visi</option>
-  </select>
-  <button class="add-btn" onclick="applyFilters()">Taikyti filtrą</button>
-  <button class="reset-btn" onclick="resetFilters()">Atstatyti filtrus</button>
+<!-- ===== FILTERS ===== -->
+<div id="filterDiv">
+  <div class="filter-grid">
+
+    <div class="filter-field">
+      <label>Įrenginys:</label>
+      <select id="filterName">
+        <option value="">Visi</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label>Sistemų grupė:</label>
+      <select id="filterGroup">
+        <option value="">Visos</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label>Nuo:</label>
+      <input type="date" id="filterFrom">
+    </div>
+
+    <div class="filter-field">
+      <label>Iki:</label>
+      <input type="date" id="filterTo">
+    </div>
+
+    <div class="filter-field">
+      <label>Nuskenuota:</label>
+      <select id="filterScanned">
+        <option value="">Visi</option>
+        <option value="1">Taip</option>
+        <option value="0">Ne</option>
+      </select>
+    </div>
+
+    <div class="filter-field">
+      <label>Vartotojas:</label>
+      <select id="filterUser">
+        <option value="">Visi</option>
+      </select>
+    </div>
+
+  </div>
+
+  <div class="filter-actions">
+    <button onclick="applyFilters()">Taikyti</button>
+    <button onclick="resetFilters()">Atstatyti</button>
+  </div>
 </div>
 
+<!-- ===== TABLE ===== -->
+<table id="logs">
+  <tr>
+    <th>Įrenginys</th>
+    <th>Laikas</th>
+    <th>Nuskenuota</th>
+    <th>Kas nuskenavo</th>
+  </tr>
+</table>
 
-  <script>
-    function resetFilters() {
-      document.getElementById('filterName').value = '';
-      document.getElementById('filterFrom').value = '';
-      document.getElementById('filterTo').value = '';
-      document.getElementById('filterScanned').value = '';
-      document.getElementById('filterUser').value = '';
-      loadLogs();
-    }
-  </script>
+<script>
+let currentCityId = '';
+let allGroups = [];
+let allDevices = [];
 
-  <!-- Table -->
-  <table id="logs">
-    <tr>
-      <th>Įrenginio pavadinimas</th>
-      <th>Laikas</th>
-      <th>Ar nuskenuota</th>
-      <th>Kas nuskenavo</th>
-    </tr>
-  </table>
+/* ===== LOAD CITIES ===== */
+async function loadCities() {
+  const res = await fetch('/cities');
+  const cities = await res.json();
 
+  const cityTabs = document.getElementById('cityTabs');
+  cityTabs.innerHTML = '';
 
-  <script>
-    async function loadLogs(params = '') {
-      try {
-        const res = await fetch('/logs?' + params);
-        const logs = await res.json();
+  cities.forEach((city, index) => {
+    const btn = document.createElement('button');
+    btn.className = index === 0 ? 'city-tab active' : 'city-tab';
+    btn.dataset.city = city.id;
+    btn.textContent = city.code;
+    cityTabs.appendChild(btn);
 
-        const table = document.getElementById('logs');
-        table.innerHTML = `
-          <tr>
-            <th>Įrenginio pavadinimas</th>
-            <th>Laikas</th>
-            <th>Ar nuskenuota</th>
-            <th>Kas nuskenavo</th>
-          </tr>
-        `;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.city-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCityId = city.id;
+      updateGroupFilter();
+      updateDeviceFilter();
+      applyFilters();
+    });
+  });
 
-        logs.forEach(log => {
-          table.innerHTML += `<tr>
-            <td>${log.device_name}</td>
-            <td>${log.scan_timestamp}</td>
-            <td>${Number(log.is_scanned) ? "✔️ Taip" : "❌ Ne"}</td>
-            <td>${log.user_name || ''}</td>
-          </tr>`;
-        });
-      } catch (err) {
-        console.error("Error loading logs:", err);
-      }
-    }
-
-      async function loadDevices() {
-    const select = document.getElementById('filterName');
-    if (select.options.length > 1) return;
-
-    try {
-      const res = await fetch('/devices');
-      const devices = await res.json();
-
-      devices.forEach(device => {
-        const option = document.createElement('option');
-        option.value = device.id;              
-        option.textContent = device.device_name; 
-        select.appendChild(option);
-      });
-    } catch (err) {
-      console.error("Error loading devices:", err);
-    }
+  // Set currentCityId BEFORE returning
+  if (cities.length > 0) {
+    currentCityId = cities[0].id;
   }
 
+  const allBtn = document.createElement('button');
+  allBtn.className = 'city-tab';
+  allBtn.dataset.city = '';
+  allBtn.textContent = 'VISI';
+  cityTabs.appendChild(allBtn);
 
-    function toggleFilters() {
-      const filterDiv = document.getElementById('filterDiv');
-      if (filterDiv.style.display === 'none' || filterDiv.style.display === '') {
-        filterDiv.style.display = 'block';
-        loadDevices();
-        loadUsers();
-      } else {
-        filterDiv.style.display = 'none';
-      }
-    }
+  allBtn.addEventListener('click', () => {
+    document.querySelectorAll('.city-tab').forEach(b => b.classList.remove('active'));
+    allBtn.classList.add('active');
+    currentCityId = '';
+    updateGroupFilter();
+    updateDeviceFilter();
+    applyFilters();
+  });
+  // Returns here after currentCityId is set
+}
 
+/* ===== LOAD ALL GROUPS (once) ===== */
+async function loadAllGroups() {
+  const res = await fetch('/system_groups');
+  allGroups = await res.json();
+  updateGroupFilter();
+}
+
+/* ===== LOAD ALL DEVICES (once) ===== */
+async function loadAllDevices() {
+  const res = await fetch('/devices');
+  allDevices = await res.json();
+  updateDeviceFilter();
+}
+
+/* ===== UPDATE GROUP FILTER based on selected city ===== */
+function updateGroupFilter() {
+  const select = document.getElementById('filterGroup');
+  const previousValue = select.value;
+
+  select.innerHTML = '<option value="">Visos</option>';
+
+  const filtered = currentCityId
+    ? allGroups.filter(g => String(g.city_id) === String(currentCityId))
+    : allGroups;
+
+  filtered.forEach(g => {
+    const option = document.createElement('option');
+    option.value = g.id;
+    option.textContent = currentCityId
+      ? g.group_name
+      : `[${g.city_code}] ${g.group_name}`;
+    select.appendChild(option);
+  });
+
+  if ([...select.options].some(o => o.value === previousValue)) {
+    select.value = previousValue;
+  }
+}
+
+/* ===== UPDATE DEVICE FILTER based on selected city ===== */
+function updateDeviceFilter() {
+  const select = document.getElementById('filterName');
+  const previousValue = select.value;
+
+  select.innerHTML = '<option value="">Visi</option>';
+
+  const filtered = currentCityId
+    ? allDevices.filter(d => String(d.city_id) === String(currentCityId))
+    : allDevices;
+
+  filtered.forEach(d => {
+    const option = document.createElement('option');
+    option.value = d.id;
+    option.textContent = currentCityId
+      ? d.device_name
+      : `[${d.city_code || '?'}] ${d.device_name}`;
+    select.appendChild(option);
+  });
+
+  if ([...select.options].some(o => o.value === previousValue)) {
+    select.value = previousValue;
+  }
+}
+
+/* ===== LOAD LOGS ===== */
+async function loadLogs(params = '') {
+  const res = await fetch('/logs?' + params);
+  const logs = await res.json();
+
+  const table = document.getElementById('logs');
+  table.innerHTML = `
+    <tr>
+      <th>Įrenginys</th>
+      <th>Laikas</th>
+      <th>Nuskenuota</th>
+      <th>Kas nuskenavo</th>
+    </tr>
+  `;
+
+  logs.forEach(l => {
+    table.innerHTML += `
+      <tr>
+        <td>${l.device_name}</td>
+        <td>${l.scan_timestamp}</td>
+        <td>${l.is_scanned ? '✔️ Taip' : '❌ Ne'}</td>
+        <td>${l.user_name || ''}</td>
+      </tr>
+    `;
+  });
+}
+
+/* ===== FILTERS ===== */
 function applyFilters() {
-  const deviceId = document.getElementById('filterName').value; 
-  const user = document.getElementById('filterUser').value.trim();
-  const from = document.getElementById('filterFrom').value;
-  const to = document.getElementById('filterTo').value;
-  const scanned = document.getElementById('filterScanned').value;
-
   const params = new URLSearchParams();
-  if (deviceId) params.append('deviceId', deviceId); 
-  if (user) params.append('user', user);
-  if (from) params.append('from', from);
-  if (to) params.append('to', to);
-  if (scanned !== '') params.append('scanned', scanned);
+
+  if (currentCityId) params.append('cityId', currentCityId);
+  if (filterName.value) params.append('deviceId', filterName.value);
+  if (filterUser.value) params.append('user', filterUser.value);
+  if (filterFrom.value) params.append('from', filterFrom.value);
+  if (filterTo.value) params.append('to', filterTo.value);
+  if (filterScanned.value !== '') params.append('scanned', filterScanned.value);
+  if (filterGroup.value) params.append('groupId', filterGroup.value);
 
   loadLogs(params.toString());
 }
 
-
-async function loadUsers() {
-  const select = document.getElementById("filterUser");
-
-  try {
-    const res = await fetch('/users');
-    const users = await res.json();
-
-    users.forEach(u => {
-      const opt = document.createElement("option");
-      opt.value = `${u.first_name} ${u.last_name}`;
-      opt.textContent = `${u.first_name} ${u.last_name}`;
-      select.appendChild(opt);
-    });
-
-  } catch (err) {
-    console.error("Error loading users:", err);
-  }
+function resetFilters() {
+  filterName.value = '';
+  filterUser.value = '';
+  filterFrom.value = '';
+  filterTo.value = '';
+  filterScanned.value = '';
+  filterGroup.value = '';
+  loadLogs(currentCityId ? `cityId=${currentCityId}` : '');
 }
+
+function toggleFilters() {
+  const filterDiv = document.getElementById('filterDiv');
+  filterDiv.style.display =
+    filterDiv.style.display === 'none' || !filterDiv.style.display
+      ? 'block'
+      : 'none';
+
+  loadUsers();
+}
+
+/* ===== LOAD USERS (once) ===== */
+async function loadUsers() {
+  if (filterUser.options.length > 1) return;
+  const res = await fetch('/users');
+  const data = await res.json();
+  data.forEach(u => {
+    const o = document.createElement('option');
+    o.value = `${u.first_name} ${u.last_name}`;
+    o.textContent = `${u.first_name} ${u.last_name}`;
+    filterUser.appendChild(o);
+  });
+}
+
+/* ===== EXPORT ===== */
 async function exportLogs() {
-  const deviceId = document.getElementById('filterName').value;
-  const user = document.getElementById('filterUser').value.trim();
-  const from = document.getElementById('filterFrom').value;
-  const to = document.getElementById('filterTo').value;
-
   const params = new URLSearchParams();
-  if (deviceId) params.append('deviceId', deviceId);
-  if (user) params.append('user', user);
-  if (from) params.append('from', from);
-  if (to) params.append('to', to);
+  if (currentCityId) params.append('cityId', currentCityId);
+  if (filterName.value) params.append('deviceId', filterName.value);
+  if (filterUser.value) params.append('user', filterUser.value);
+  if (filterFrom.value) params.append('from', filterFrom.value);
+  if (filterTo.value) params.append('to', filterTo.value);
+  if (filterGroup.value) params.append('groupId', filterGroup.value);
 
-  try {
-    const res = await fetch('/logs?' + params.toString());
-    const logs = await res.json();  
+  const res = await fetch('/logs?' + params);
+  const logs = await res.json();
 
-        if (logs.length === 0) {
-          alert("Nėra duomenų eksportavimui");
-          return;
-        }
+  if (!logs.length) return alert('Nėra duomenų');
 
-        let fileName = prompt("Įveskite failo pavadinimą:", "zurnalas");
-        if (!fileName) return;
-        if (!fileName.endsWith(".csv")) fileName += ".csv";
+  let csv = `"Irenginys";"Laikas";"Nuskenuota";"Vartotojas"\n`;
+  logs.forEach(l => {
+    csv += `"${l.device_name}";"${l.scan_timestamp}";"${l.is_scanned ? 'TAIP' : 'NE'}";"${l.user_name || ''}"\n`;
+  });
 
-      let csv = `"Įrenginio pavadinimas";"Laikas";"Ar nuskenuota";"Kas nuskenavo"\n`;
-      logs.forEach(log => {
-        csv += `"${log.device_name}";"${log.scan_timestamp}";"${log.is_scanned ? "TAIP" : "NE"}";"${log.user_name || ""}"\n`;
-      });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'zurnalas.csv';
+  a.click();
+}
 
+// Initialize - order matters: cities first, then filters
+async function init() {
+  await loadCities();           // sets currentCityId to first city
+  await Promise.all([
+    loadAllGroups(),            // loads groups → calls updateGroupFilter()
+    loadAllDevices(),           // loads devices → calls updateDeviceFilter()
+  ]);
+  loadLogs(currentCityId ? `cityId=${currentCityId}` : '');
+}
 
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        console.error("Error exporting logs:", err);
-        alert("Klaida eksportuojant žurnalą");
-      }
-    }
+init();
+</script>
 
-    loadLogs();
-  </script>
 </body>
 </html>

@@ -1,105 +1,459 @@
 <!DOCTYPE html>
-<html>
+<html lang="lt">
 <head>
+  <meta charset="UTF-8">
   <title>Įrenginio taisyklės</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { margin-bottom: 20px; }
-    label { display: block; margin: 5px 0; }
-    button { margin-top: 10px; padding: 5px 10px; cursor: pointer; }
-    #message {
-      margin-top: 10px;
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 20px;
+      background: #f0f2f5;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    h1 { 
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+    
+    h2 {
+      color: #2c3e50;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    
+    .form-group input[type="date"],
+    .form-group input[type="number"] {
+      width: 100%;
+      max-width: 300px;
       padding: 8px 12px;
-      border-radius: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .recurrence-options {
+      margin-top: 15px;
+    }
+    
+    .recurrence-option {
+      margin-bottom: 15px;
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .recurrence-option:hover {
+      border-color: #3498db;
+    }
+    
+    .recurrence-option.selected {
+      border-color: #3498db;
+      background: #e1f0ff;
+    }
+    
+    .recurrence-option input[type="radio"] {
+      margin-right: 10px;
+    }
+    
+    .recurrence-details {
+      margin-top: 10px;
+      margin-left: 30px;
       display: none;
     }
-    #message.success { background-color: #d4edda; color: #155724; }
-    #message.error { background-color: #f8d7da; color: #721c24; }
+    
+    .recurrence-option.selected .recurrence-details {
+      display: block;
+    }
+    
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .day-checkbox {
+      display: flex;
+      align-items: center;
+    }
+    
+    .day-checkbox input {
+      margin-right: 5px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-right: 10px;
+    }
+    
+    .btn-primary {
+      background: #3498db;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #217dbb;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
+    
+    #message {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+    }
+    
+    #message.success { 
+      background-color: #d4edda; 
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    #message.error { 
+      background-color: #f8d7da; 
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
   </style>
 </head>
 <body>
-  <h1 id="deviceName">Įrenginys</h1>
-  <button onclick="window.location.href='qr.html'">Grįžti į sąrašą</button>
 
-  <h2>Nustatyti taisykles</h2>
+<div class="container">
+  <h1 id="deviceName">Įrenginys</h1>
+  <button class="btn-secondary" onclick="window.location.href='qr.html'">Grįžti</button>
+
+  <h2>Nustatyti pasikartojimo taisykles</h2>
+  
   <form id="rulesForm">
-    <label><input type="checkbox" name="monday"> Pirmadienis</label>
-    <label><input type="checkbox" name="tuesday"> Antradienis</label>
-    <label><input type="checkbox" name="wednesday"> Trečiadienis</label>
-    <label><input type="checkbox" name="thursday"> Ketvirtadienis</label>
-    <label><input type="checkbox" name="friday"> Penktadienis</label>
-    <label><input type="checkbox" name="saturday"> Šeštadienis</label>
-    <label><input type="checkbox" name="sunday"> Sekmadienis</label>
-    <button type="button" onclick="saveRules()">Išsaugoti taisykles</button>
+    <!-- Start Date -->
+    <div class="form-group">
+      <label>Pradžios data *</label>
+      <input type="date" id="startDate" required>
+    </div>
+    
+    <!-- End Date -->
+    <div class="form-group">
+      <label>
+        <input type="checkbox" id="noEndDate"> Nėra pabaigos datos
+      </label>
+      <input type="date" id="endDate" style="margin-top: 10px;">
+    </div>
+    
+    <!-- Recurrence Type -->
+    <div class="form-group">
+      <label>Pasikartojimo tipas</label>
+      <div class="recurrence-options">
+        
+        <!-- Daily -->
+        <div class="recurrence-option" onclick="selectRecurrence('daily')">
+          <input type="radio" name="recurrence" value="daily" id="recurrence-daily">
+          <label for="recurrence-daily" style="display: inline; margin: 0;">Kasdien</label>
+          <div class="recurrence-details">
+            <label>Kas 
+              <input type="number" id="dailyInterval" min="1" value="1" style="width: 60px; display: inline-block;">
+              diena(-as/-ų)
+            </label>
+          </div>
+        </div>
+        
+        <!-- Weekly -->
+        <div class="recurrence-option selected" onclick="selectRecurrence('weekly')">
+          <input type="radio" name="recurrence" value="weekly" id="recurrence-weekly" checked>
+          <label for="recurrence-weekly" style="display: inline; margin: 0;">Kas savaitę</label>
+          <div class="recurrence-details">
+            <label>Pasirinkite dienas:</label>
+            <div class="days-grid">
+              <div class="day-checkbox"><input type="checkbox" name="weekday" value="Monday"> Pirmadienis</div>
+              <div class="day-checkbox"><input type="checkbox" name="weekday" value="Tuesday"> Antradienis</div>
+              <div class="day-checkbox"><input type="checkbox" name="weekday" value="Wednesday"> Trečiadienis</div>
+              <div class="day-checkbox"><input type="checkbox" name="weekday" value="Thursday"> Ketvirtadienis</div>
+              <div class="day-checkbox"><input type="checkbox" name="weekday" value="Friday"> Penktadienis</div>
+              <div class="day-checkbox"><input type="checkbox" name="weekday" value="Saturday"> Šeštadienis</div>
+              <div class="day-checkbox"><input type="checkbox" name="weekday" value="Sunday"> Sekmadienis</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Monthly -->
+        <div class="recurrence-option" onclick="selectRecurrence('monthly')">
+          <input type="radio" name="recurrence" value="monthly" id="recurrence-monthly">
+          <label for="recurrence-monthly" style="display: inline; margin: 0;">Kas mėnesį</label>
+          <div class="recurrence-details">
+            <label>Mėnesio diena (1-31):
+              <input type="number" id="monthlyDay" min="1" max="31" value="1" style="width: 80px; display: inline-block;">
+            </label>
+          </div>
+        </div>
+        
+        <!-- Yearly -->
+        <div class="recurrence-option" onclick="selectRecurrence('yearly')">
+          <input type="radio" name="recurrence" value="yearly" id="recurrence-yearly">
+          <label for="recurrence-yearly" style="display: inline; margin: 0;">Kasmet</label>
+          <div class="recurrence-details">
+            <label>Data (MM-DD):
+              <input type="text" id="yearlyDate" placeholder="01-01" pattern="\d{2}-\d{2}" style="width: 100px; display: inline-block;">
+            </label>
+            <small style="display: block; color: #666; margin-top: 5px;">Pvz.: 12-25 (gruodžio 25)</small>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+    
+    <button type="button" class="btn-primary" onclick="saveRules()">Išsaugoti taisykles</button>
+    <button type="button" class="btn-danger" onclick="deleteRules()">Ištrinti taisykles</button>
   </form>
 
   <div id="message"></div>
+</div>
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const deviceId = urlParams.get('id');
-    const messageEl = document.getElementById('message');
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const deviceId = urlParams.get('id');
+  const messageEl = document.getElementById('message');
 
-    function showMessage(text, type='success') {
-      messageEl.textContent = text;
-      messageEl.className = type === 'success' ? 'success' : 'error';
-      messageEl.style.display = 'block';
-      setTimeout(() => messageEl.style.display = 'none', 4000); // hide after 4s
+  let currentRuleId = null;
+
+  function showMessage(text, type='success') {
+    messageEl.textContent = text;
+    messageEl.className = type === 'success' ? 'success' : 'error';
+    messageEl.style.display = 'block';
+    setTimeout(() => messageEl.style.display = 'none', 5000);
+  }
+
+function selectRecurrence(type) {
+  document.querySelectorAll('.recurrence-option').forEach(opt => {
+    opt.classList.remove('selected');
+  });
+  
+  // Find the clicked element or the one with matching type
+  const clickedElement = event ? event.currentTarget : document.querySelector(`input[value="${type}"]`).closest('.recurrence-option');
+  clickedElement.classList.add('selected');
+  document.getElementById(`recurrence-${type}`).checked = true;
+}
+
+  // Toggle end date
+  document.getElementById('noEndDate').addEventListener('change', function() {
+    document.getElementById('endDate').disabled = this.checked;
+    if (this.checked) {
+      document.getElementById('endDate').value = '';
     }
+  });
 
-    async function loadDevice() {
-      try {
-        const res = await fetch(`/devices/${deviceId}`);
-        if (!res.ok) throw new Error("Nepavyko gauti įrenginio");
-        const device = await res.json();
-        document.getElementById('deviceName').textContent = `Įrenginys: ${device.device_name}`;
+function toDateInputValue(v) {
+  if (!v) return '';
+  // jei grįžta ISO su laiku ar "YYYY-MM-DD HH:MM:SS" – paimam tik datą
+  return String(v).slice(0, 10);
+}
 
-        // Load existing rules
-        const rulesRes = await fetch(`/device_rules/${deviceId}`);
-        if (rulesRes.ok) {
-          const rules = await rulesRes.json();
-          rules.forEach(rule => {
-            const checkbox = document.querySelector(`input[name="${rule.rule_day.toLowerCase()}"]`);
-            if (checkbox) checkbox.checked = true;
-          });
+async function loadDevice() {
+  try {
+    const res = await fetch(`/devices/${deviceId}`);
+    if (!res.ok) throw new Error("Nepavyko gauti įrenginio");
+    const device = await res.json();
+    document.getElementById('deviceName').textContent = `Įrenginys: ${device.device_name}`;
+
+    // Load existing rules
+    const rulesRes = await fetch(`/device_rules/${deviceId}`);
+    if (rulesRes.ok) {
+      const rules = await rulesRes.json();
+
+      if (rules.length > 0) {
+        const rule = rules[0]; // Take first rule
+
+        // išsisaugom rule_id, kad galėtume trinti pagal ruleId
+        currentRuleId = rule.rule_id;
+
+        document.getElementById('startDate').value = toDateInputValue(rule.start_date);
+
+        if (rule.end_date) {
+          document.getElementById('endDate').value = toDateInputValue(rule.end_date);
+          document.getElementById('noEndDate').checked = false;
+          document.getElementById('endDate').disabled = false;
+        } else {
+          document.getElementById('noEndDate').checked = true;
+          document.getElementById('endDate').disabled = true;
+          document.getElementById('endDate').value = ''; 
         }
-      } catch (err) {
-        console.error(err);
-        showMessage("Klaida įkeliant įrenginį ar taisykles", "error");
-      }
-    }
 
-    async function saveRules() {
-      const formData = new FormData(document.getElementById('rulesForm'));
-      const rules = [];
-
-      ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(day => {
-        if (formData.get(day) === 'on') {
-          rules.push({ device_id: deviceId, rule_day: day.charAt(0).toUpperCase() + day.slice(1) });
-        }
-      });
-
-      try {
-        const res = await fetch(`/device_rules/${deviceId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(rules)
+        document.querySelectorAll('.recurrence-option').forEach(opt => {
+          opt.classList.remove('selected');
         });
 
-        if (res.ok) {
-          showMessage("Taisyklės išsaugotos!", "success");
-        } else {
-          const text = await res.text();
-          showMessage("Klaida: " + text, "error");
+        const recurrenceType = rule.recurrence_type;
+        const selectedOption = document
+          .querySelector(`.recurrence-option input[value="${recurrenceType}"]`)
+          .closest('.recurrence-option');
+
+        selectedOption.classList.add('selected');
+        document.getElementById(`recurrence-${recurrenceType}`).checked = true;
+
+        // Fill in type-specific fields
+        if (recurrenceType === 'daily') {
+          document.getElementById('dailyInterval').value = rule.daily_interval || 1;
+
+        } else if (recurrenceType === 'weekly' && rule.weekly_days) {
+          const days = rule.weekly_days.split(',');
+          days.forEach(day => {
+            const checkbox = document.querySelector(`input[name="weekday"][value="${day.trim()}"]`);
+            if (checkbox) checkbox.checked = true;
+          });
+
+        } else if (recurrenceType === 'monthly') {
+          document.getElementById('monthlyDay').value = rule.monthly_day || 1;
+
+        } else if (recurrenceType === 'yearly') {
+          document.getElementById('yearlyDate').value = rule.yearly_date || '01-01';
         }
-      } catch (err) {
-        console.error(err);
-        showMessage("Klaida saugant taisykles", "error");
+
+      } else {
+        // jei taisyklių nėra – neturim ką trinti
+        currentRuleId = null;
       }
     }
+  } catch (err) {
+    console.error(err);
+    showMessage("Klaida įkeliant įrenginį ar taisykles", "error");
+  }
+}
 
-    loadDevice();
-  </script>
+
+  async function saveRules() {
+    const recurrenceType = document.querySelector('input[name="recurrence"]:checked').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('noEndDate').checked ? null : document.getElementById('endDate').value;
+    
+    if (!startDate) {
+      return showMessage("Įveskite pradžios datą", "error");
+    }
+    
+    const ruleData = {
+      rule_id: currentRuleId,
+      recurrence_type: recurrenceType,
+      start_date: startDate,
+      end_date: endDate
+    };
+    
+    if (recurrenceType === 'daily') {
+      ruleData.daily_interval = parseInt(document.getElementById('dailyInterval').value) || 1;
+    } else if (recurrenceType === 'weekly') {
+      const selectedDays = Array.from(document.querySelectorAll('input[name="weekday"]:checked'))
+        .map(cb => cb.value);
+      if (selectedDays.length === 0) {
+        return showMessage("Pasirinkite bent vieną dieną", "error");
+      }
+      ruleData.weekly_days = selectedDays.join(',');
+    } else if (recurrenceType === 'monthly') {
+      ruleData.monthly_day = parseInt(document.getElementById('monthlyDay').value) || 1;
+    } else if (recurrenceType === 'yearly') {
+      const yearlyDate = document.getElementById('yearlyDate').value;
+      if (!/^\d{2}-\d{2}$/.test(yearlyDate)) {
+        return showMessage("Įveskite datą formatu MM-DD", "error");
+      }
+      ruleData.yearly_date = yearlyDate;
+    }
+
+    try {
+      const res = await fetch(`/device_rules/${deviceId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ruleData)
+      });
+
+      if (res.ok) {
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const data = await res.json();
+          if (data.rule_id) currentRuleId = data.rule_id;
+        }
+        showMessage("Taisyklės išsaugotos!", "success");
+      } else {
+        const text = await res.text();
+        showMessage("Klaida: " + text, "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showMessage("Klaida saugant taisykles", "error");
+    }
+  }
+
+  async function deleteRules() {
+  if (!currentRuleId) {
+    showMessage("Šis įrenginys neturi taisyklių", "error");
+    return;
+  }
+
+  if (!confirm("Ar tikrai norite ištrinti šio įrenginio taisyklę?")) return;
+
+  try {
+    const res = await fetch(`/device_rules/rule/${currentRuleId}`, { method: 'DELETE' });
+
+    if (res.ok) {
+      showMessage("Taisyklė ištrinta!", "success");
+
+      currentRuleId = null;
+
+      // reset UI
+      document.getElementById('rulesForm').reset();
+      document.getElementById('noEndDate').checked = false;
+      document.getElementById('endDate').disabled = false;
+
+      document.querySelectorAll('.recurrence-option').forEach(opt => opt.classList.remove('selected'));
+      const weeklyOpt = document.querySelector('#recurrence-weekly').closest('.recurrence-option');
+      weeklyOpt.classList.add('selected');
+      document.getElementById('recurrence-weekly').checked = true;
+
+    } else {
+      const text = await res.text();
+      showMessage("Klaida: " + text, "error");
+    }
+  } catch (err) {
+    console.error(err);
+    showMessage("Klaida trinant taisyklę", "error");
+  }
+}
+
+
+
+  loadDevice();
+</script>
 </body>
 </html>

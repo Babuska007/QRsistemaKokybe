@@ -1,110 +1,67 @@
--- MySQL dump 10.13  Distrib 9.5.0, for macos15.4 (arm64)
---
--- Host: localhost    Database: VNO
--- ------------------------------------------------------
--- Server version	9.5.0
+CREATE DATABASE IF NOT EXISTS `vno` 
+DEFAULT CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+USE `vno`;
 
---
--- Current Database: `VNO`
---
 
-/*!40000 DROP DATABASE IF EXISTS `VNO`*/;
-
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `VNO` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-
-USE `VNO`;
-
---
--- Table structure for table `device_rules`
---
-
-DROP TABLE IF EXISTS `device_rules`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `device_rules` (
-  `rule_id` int NOT NULL AUTO_INCREMENT,
-  `device_id` int NOT NULL,
-  `rule_day` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
-  PRIMARY KEY (`rule_id`),
-  KEY `device_id` (`device_id`),
-  CONSTRAINT `device_rules_ibfk_1` FOREIGN KEY (`device_id`) REFERENCES `devices` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `devices`
---
-
-DROP TABLE IF EXISTS `devices`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `devices` (
+CREATE TABLE IF NOT EXISTS `cities` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `device_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `qr_id` int DEFAULT NULL,
+  `code` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `system_groups` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `city_id` int NOT NULL,
+  `group_name` varchar(255) NOT NULL,
+  `description` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `device_name` (`device_name`),
-  KEY `qr_id` (`qr_id`),
-  CONSTRAINT `devices_ibfk_1` FOREIGN KEY (`qr_id`) REFERENCES `qrcodes` (`qr_id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+  UNIQUE KEY `unique_city_group` (`city_id`,`group_name`),
+  KEY `city_id` (`city_id`),
+  CONSTRAINT `system_groups_ibfk_1` FOREIGN KEY (`city_id`) REFERENCES `cities` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Table structure for table `qrcodes`
---
 
-DROP TABLE IF EXISTS `qrcodes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `qrcodes` (
+CREATE TABLE IF NOT EXISTS `qrcodes` (
   `qr_id` int NOT NULL AUTO_INCREMENT,
   `qr_code` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `qr_image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `city_id` int DEFAULT NULL,
+  `system_group_id` int DEFAULT NULL,
   PRIMARY KEY (`qr_id`),
-  UNIQUE KEY `qr_code` (`qr_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+  UNIQUE KEY `qr_code` (`qr_code`),
+  KEY `city_id` (`city_id`),
+  KEY `system_group_id` (`system_group_id`),
+  CONSTRAINT `qrcodes_ibfk_1` FOREIGN KEY (`city_id`) REFERENCES `cities` (`id`),
+  CONSTRAINT `qrcodes_ibfk_2` FOREIGN KEY (`system_group_id`) REFERENCES `system_groups` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Table structure for table `scans`
---
 
-DROP TABLE IF EXISTS `scans`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `scans` (
-  `scan_id` int NOT NULL AUTO_INCREMENT,
-  `device_id` int NOT NULL,
-  `user_id` int DEFAULT NULL,
-  `scan_timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
-  `is_scanned` tinyint(1) DEFAULT '0',
-  PRIMARY KEY (`scan_id`),
-  KEY `device_id` (`device_id`),
-  CONSTRAINT `scans_ibfk_1` FOREIGN KEY (`device_id`) REFERENCES `devices` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
+CREATE TABLE IF NOT EXISTS `devices` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `device_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `qr_id` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `city_id` int NOT NULL,
+  `system_group_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `device_name` (`device_name`),
+  KEY `qr_id` (`qr_id`),
+  KEY `city_id` (`city_id`),
+  KEY `idx_devices_group` (`system_group_id`),
+  CONSTRAINT `devices_ibfk_1` FOREIGN KEY (`qr_id`) REFERENCES `qrcodes` (`qr_id`) ON DELETE SET NULL,
+  CONSTRAINT `devices_ibfk_2` FOREIGN KEY (`city_id`) REFERENCES `cities` (`id`),
+  CONSTRAINT `devices_ibfk_3` FOREIGN KEY (`system_group_id`) REFERENCES `system_groups` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Table structure for table `users`
---
 
-DROP TABLE IF EXISTS `users`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `first_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `last_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -113,16 +70,40 @@ CREATE TABLE `users` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_pin_code` (`pin_code`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-12-21 20:50:20
+CREATE TABLE IF NOT EXISTS `scans` (
+  `scan_id` int NOT NULL AUTO_INCREMENT,
+  `device_id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `scan_timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
+  `is_scanned` tinyint(1) DEFAULT '0',
+  PRIMARY KEY (`scan_id`),
+  KEY `device_id` (`device_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `scans_ibfk_1` FOREIGN KEY (`device_id`) REFERENCES `devices` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `scans_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `device_rules` (
+  `rule_id` int NOT NULL AUTO_INCREMENT,
+  `device_id` int NOT NULL,
+  `recurrence_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'weekly',
+  `daily_interval` int DEFAULT '1',
+  `weekly_days` text COLLATE utf8mb4_unicode_ci,
+  `monthly_day` int DEFAULT NULL,
+  `yearly_date` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rule_id`),
+  KEY `device_id` (`device_id`),
+  CONSTRAINT `device_rules_ibfk_1` FOREIGN KEY (`device_id`) REFERENCES `devices` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO cities (code, name) VALUES
+('VNO', 'Vilnius'),
+('KUN', 'Kaunas'),
+('PLQ', 'Palanga');

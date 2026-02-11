@@ -85,6 +85,15 @@ button:active {
   transform: translateY(0);
 }
 
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+.btn-danger:hover {
+  background: #c0392b;
+}
+
+
 /* --- Forms / Filters --- */
 #filterDiv, #addDeviceForm {
   display: none;

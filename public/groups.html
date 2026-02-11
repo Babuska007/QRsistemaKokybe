@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <title>Sisteminės grupės</title>
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    .groups-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .group-card {
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      padding: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .group-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 10px;
+    }
+
+    .group-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #217dbb;
+      margin: 0;
+    }
+
+    .group-city {
+      font-size: 12px;
+      color: #666;
+      margin: 5px 0;
+    }
+
+    .group-description {
+      color: #555;
+      font-size: 14px;
+      margin: 10px 0;
+      min-height: 40px;
+    }
+
+    .group-stats {
+      display: flex;
+      gap: 15px;
+      margin: 10px 0;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .group-actions {
+      display: flex;
+      gap: 5px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      margin: 50px auto;
+      padding: 30px;
+      width: 90%;
+      max-width: 600px;
+      border-radius: 12px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      color: #2c3e50;
+    }
+
+    .close {
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #999;
+    }
+
+    .close:hover {
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border 0.2s;
+      margin-right: 0;
+      background: white;
+      color: #333;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: #3498db;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .qr-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      background: #f8f9fa;
+      margin-top: 10px;
+    }
+
+    .qr-item {
+      padding: 8px;
+      margin-bottom: 5px;
+      background: white;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .qr-item.hidden {
+      display: none;
+    }
+
+    .qr-item label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .qr-item input[type="checkbox"] {
+      margin-right: 10px;
+      width: auto;
+    }
+
+    /* View-only device list */
+    .device-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      background: #f8f9fa;
+      margin-top: 10px;
+    }
+
+    .device-item {
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: white;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      font-size: 14px;
+      color: #333;
+    }
+
+    .device-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .device-icon {
+      font-size: 16px;
+    }
+
+    .device-count-badge {
+      display: inline-block;
+      background: #e8f4fd;
+      color: #217dbb;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+      font-size: 16px;
+    }
+
+    .filter-bar {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .filter-bar label {
+      font-weight: 500;
+      color: #2c3e50;
+    }
+
+    .secondary {
+      background: #6c757d;
+    }
+
+    .secondary:hover {
+      background: #5a6268;
+    }
+
+    .danger {
+      background: #e74c3c;
+    }
+
+    .danger:hover {
+      background: #c0392b;
+    }
+
+    .view-btn {
+      background: #27ae60;
+    }
+
+    .view-btn:hover {
+      background: #219a52;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Sisteminės grupės</h1>
+
+  <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+    <button class="reset-btn" onclick="location.href='index.html'">Grįžti</button>
+    <button class="add-btn" onclick="showCreateModal()">Sukurti grupę</button>
+  </div>
+
+  <div class="filter-bar">
+    <label>Filtruoti pagal miestą:</label>
+    <select id="cityFilter" onchange="loadGroups()">
+      <option value="">Visi miestai</option>
+    </select>
+  </div>
+
+  <div class="groups-grid" id="groupsGrid">
+    <div class="empty-state">Kraunama...</div>
+  </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div id="groupModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modalTitle">Sukurti grupę</h2>
+      <span class="close" onclick="closeModal()">&times;</span>
+    </div>
+    
+    <form id="groupForm" onsubmit="saveGroup(event)">
+      <div class="form-group">
+        <label>Miestas *</label>
+        <select id="groupCity" required>
+          <option value="">Pasirinkite miestą</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Grupės pavadinimas *</label>
+        <input type="text" id="groupName" required placeholder="pvz., Vandentiekis, Elektra, Šildymas">
+      </div>
+
+      <div class="form-group">
+        <label>Aprašymas</label>
+        <textarea id="groupDescription" placeholder="Pasirenkamas grupės aprašymas"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button type="submit">Išsaugoti</button>
+        <button type="button" class="secondary" onclick="closeModal()">Atšaukti</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- View Devices Modal (read-only) -->
+<div id="viewModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="viewModalTitle">Grupės įrenginiai</h2>
+      <span class="close" onclick="closeViewModal()">&times;</span>
+    </div>
+
+    <div class="form-group">
+      <label>
+        Įrenginiai grupėje:
+        <span class="device-count-badge" id="viewDeviceCount">0</span>
+      </label>
+      <div class="device-list" id="viewDeviceList">
+        Kraunama...
+      </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <button class="secondary" onclick="closeViewModal()">Uždaryti</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign QR Codes Modal -->
+<div id="qrModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Priskirti QR kodus</h2>
+      <span class="close" onclick="closeQRModal()">&times;</span>
+    </div>
+    
+    <div class="form-group">
+      <label>Pasirinkite įrenginius:</label>
+      
+      <input type="text" id="qrSearchInput" placeholder="Ieškoti įrenginio..." oninput="filterQRList()">
+      
+      <select id="qrCityFilter" onchange="filterQRList()" style="margin-top: 10px;">
+        <option value="">Visi miestai</option>
+      </select>
+      
+      <div class="qr-list" id="qrList">
+        Kraunama...
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button onclick="assignQRCodes()">Patvirtinti</button>
+      <button class="secondary" onclick="closeQRModal()">Atšaukti</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentGroupId = null;
+let currentEditGroupId = null;
+let allCities = [];
+let allQRCodes = [];
+let initiallyAssignedIds = [];
+
+async function loadCities() {
+  const res = await fetch('/cities');
+  allCities = await res.json();
+  
+  const cityFilter = document.getElementById('cityFilter');
+  const groupCity = document.getElementById('groupCity');
+  const qrCityFilter = document.getElementById('qrCityFilter');
+  
+  cityFilter.innerHTML = '<option value="">Visi miestai</option>';
+  groupCity.innerHTML = '<option value="">Pasirinkite miestą</option>';
+  qrCityFilter.innerHTML = '<option value="">Visi įrenginiai</option>';
+  
+  allCities.forEach(city => {
+    const option1 = document.createElement('option');
+    option1.value = city.id;
+    option1.textContent = `${city.code} - ${city.name}`;
+    cityFilter.appendChild(option1);
+
+    const option2 = document.createElement('option');
+    option2.value = city.id;
+    option2.textContent = `${city.code} - ${city.name}`;
+    groupCity.appendChild(option2);
+
+    const option3 = document.createElement('option');
+    option3.value = city.id;
+    option3.textContent = `${city.code} - ${city.name}`;
+    qrCityFilter.appendChild(option3);
+  });
+}
+
+async function loadGroups() {
+  const cityId = document.getElementById('cityFilter').value;
+  const params = cityId ? `?cityId=${cityId}` : '';
+  
+  const res = await fetch('/system_groups' + params);
+  const groups = await res.json();
+  
+  const grid = document.getElementById('groupsGrid');
+  
+  if (groups.length === 0) {
+    grid.innerHTML = '<div class="empty-state">Grupių nerasta. Sukurkite naują grupę!</div>';
+    return;
+  }
+  
+  grid.innerHTML = '';
+  
+  groups.forEach(group => {
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.innerHTML = `
+      <div class="group-header">
+        <div>
+          <h3 class="group-title">${group.group_name}</h3>
+          <div class="group-city">${group.city_code} - ${group.city_name}</div>
+        </div>
+      </div>
+      
+      <div class="group-description">${group.description || '<em>Nėra aprašymo</em>'}</div>
+      
+      <div class="group-stats">
+        <span>Įrenginiai: ${group.qr_count}</span>
+      </div>
+      
+      <div class="group-actions">
+        <button class="view-btn" onclick="showViewModal(${group.id}, '${group.group_name}')">Peržiūrėti</button>
+        <button onclick="showAssignModal(${group.id})">Priskirti</button>
+        <button class="secondary" onclick="editGroup(${group.id})">Redaguoti</button>
+        <button class="danger" onclick="deleteGroup(${group.id}, '${group.group_name}')">Ištrinti</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// --- View Modal (read-only) ---
+
+async function showViewModal(groupId, groupName) {
+  document.getElementById('viewModalTitle').textContent = `"${groupName}" įrenginiai`;
+  document.getElementById('viewDeviceList').innerHTML = 'Kraunama...';
+  document.getElementById('viewDeviceCount').textContent = '...';
+  document.getElementById('viewModal').style.display = 'block';
+
+  const res = await fetch(`/system_groups/${groupId}/qrcodes`);
+  const devices = await res.json();
+
+  const list = document.getElementById('viewDeviceList');
+  document.getElementById('viewDeviceCount').textContent = devices.length;
+
+  if (devices.length === 0) {
+    list.innerHTML = '<div class="empty-state">Ši grupė neturi priskirtų įrenginių</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  devices.forEach(device => {
+    const item = document.createElement('div');
+    item.className = 'device-item';
+    item.innerHTML = `
+      <span>${device.device_name || 'Neturi pavadinimo'}</span>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function closeViewModal() {
+  document.getElementById('viewModal').style.display = 'none';
+}
+
+// --- Create / Edit Modal ---
+
+function showCreateModal() {
+  currentEditGroupId = null;
+  document.getElementById('modalTitle').textContent = 'Sukurti grupę';
+  document.getElementById('groupForm').reset();
+  document.getElementById('groupModal').style.display = 'block';
+}
+
+async function editGroup(id) {
+  currentEditGroupId = id;
+  
+  const res = await fetch(`/system_groups`);
+  const groups = await res.json();
+  const group = groups.find(g => g.id === id);
+  
+  if (!group) return alert('Grupė nerasta');
+  
+  document.getElementById('modalTitle').textContent = 'Redaguoti grupę';
+  document.getElementById('groupCity').value = group.city_id;
+  document.getElementById('groupName').value = group.group_name;
+  document.getElementById('groupDescription').value = group.description || '';
+  
+  document.getElementById('groupModal').style.display = 'block';
+}
+
+async function saveGroup(event) {
+  event.preventDefault();
+  
+  const city_id = document.getElementById('groupCity').value;
+  const group_name = document.getElementById('groupName').value;
+  const description = document.getElementById('groupDescription').value;
+  
+  const data = { city_id, group_name, description };
+  
+  try {
+    let res;
+    if (currentEditGroupId) {
+      res = await fetch(`/system_groups/${currentEditGroupId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } else {
+      res = await fetch('/system_groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    }
+    
+    if (res.ok) {
+      closeModal();
+      loadGroups();
+      alert('Grupė išsaugota!');
+    } else {
+      const error = await res.text();
+      alert('Klaida: ' + error);
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Klaida saugant grupę');
+  }
+}
+
+async function deleteGroup(id, name) {
+  if (!confirm(`Ar tikrai norite ištrinti grupę "${name}"?\n\nQR kodai nebus ištrinti, tik atskirti nuo grupės.`)) {
+    return;
+  }
+  
+  try {
+    const res = await fetch(`/system_groups/${id}`, { method: 'DELETE' });
+    
+    if (res.ok) {
+      loadGroups();
+      alert('Grupė ištrinta!');
+    } else {
+      alert('Klaida trinant grupę');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Klaida trinant grupę');
+  }
+}
+
+// --- Assign Modal ---
+
+async function showAssignModal(groupId) {
+  currentGroupId = groupId;
+  document.getElementById('qrModal').style.display = 'block';
+  
+  document.getElementById('qrSearchInput').value = '';
+  document.getElementById('qrCityFilter').value = '';
+  
+  const res = await fetch('/qrcodes');
+  allQRCodes = await res.json();
+  
+  const groupRes = await fetch(`/system_groups/${groupId}/qrcodes`);
+  const groupQRs = await groupRes.json();
+  const assignedIds = groupQRs.map(q => q.qr_id);
+  
+  initiallyAssignedIds = [...assignedIds];
+  
+  const qrList = document.getElementById('qrList');
+  qrList.innerHTML = '';
+  
+  if (allQRCodes.length === 0) {
+    qrList.innerHTML = '<div class="empty-state">Nėra prieinamų QR kodų</div>';
+    return;
+  }
+  
+  allQRCodes.forEach(qr => {
+    const isSameGroup = assignedIds.includes(qr.qr_id);
+    const isOtherGroup = qr.system_group_id && qr.system_group_id !== groupId;
+    
+    const item = document.createElement('div');
+    item.className = 'qr-item';
+    item.dataset.qrId = qr.qr_id;
+    item.dataset.deviceName = qr.device_name || '';
+    item.dataset.cityId = qr.city_id || '';
+    
+    let displayText = qr.device_name || 'Neturi pavadinimo';
+    if (isOtherGroup) displayText += ' (priskirtas kitai grupei)';
+    
+    item.innerHTML = `
+      <label>
+        <input type="checkbox" 
+               value="${qr.qr_id}" 
+               ${isSameGroup ? 'checked' : ''} 
+               ${isOtherGroup ? 'disabled' : ''}>
+        ${displayText}
+      </label>
+    `;
+    qrList.appendChild(item);
+  });
+}
+
+function filterQRList() {
+  const searchText = document.getElementById('qrSearchInput').value.toLowerCase();
+  const cityId = document.getElementById('qrCityFilter').value;
+  
+  const items = document.querySelectorAll('.qr-item');
+  
+  items.forEach(item => {
+    const deviceName = item.dataset.deviceName.toLowerCase();
+    const itemCityId = item.dataset.cityId;
+    
+    const matchesSearch = !searchText || deviceName.includes(searchText);
+    const matchesCity = !cityId || itemCityId === cityId;
+    
+    if (matchesSearch && matchesCity) {
+      item.classList.remove('hidden');
+    } else {
+      item.classList.add('hidden');
+    }
+  });
+}
+
+async function assignQRCodes() {
+  const checkboxes = document.querySelectorAll(
+    '#qrList input[type="checkbox"]:not([disabled])'
+  );
+
+  const nowChecked = Array.from(checkboxes)
+    .filter(cb => cb.checked)
+    .map(cb => parseInt(cb.value));
+
+  const nowUnchecked = Array.from(checkboxes)
+    .filter(cb => !cb.checked)
+    .map(cb => parseInt(cb.value));
+
+  const toAssign = nowChecked.filter(id => !initiallyAssignedIds.includes(id));
+  const toUnassign = nowUnchecked.filter(id => initiallyAssignedIds.includes(id));
+
+  try {
+    if (toAssign.length > 0) {
+      await fetch(`/system_groups/${currentGroupId}/assign_qrcodes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_ids: toAssign })
+      });
+    }
+
+    if (toUnassign.length > 0) {
+      await fetch(`/system_groups/${currentGroupId}/unassign_qrcodes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_ids: toUnassign })
+      });
+    }
+
+    closeQRModal();
+    loadGroups();
+    alert('Grupė atnaujinta!');
+  } catch (err) {
+    console.error(err);
+    alert('Klaida atnaujinant grupę');
+  }
+}
+
+function closeModal() {
+  document.getElementById('groupModal').style.display = 'none';
+}
+
+function closeQRModal() {
+  document.getElementById('qrModal').style.display = 'none';
+}
+
+// Initialize
+loadCities();
+loadGroups();
+</script>
+
+</body>
+</html>

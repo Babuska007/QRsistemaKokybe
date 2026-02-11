@@ -6,11 +6,98 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
 
+    /* ==== CITY TABS ==== */
+    .city-tabs {
+      display: flex;
+      gap: 12px;
+      background: #f0f2f5;
+      border-radius: 0 0 14px 14px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      padding: 10px;
+    }
+
+    .city-tab {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      background-color: transparent;
+      color: #217dbb;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .city-tab:hover {
+      background: rgba(58, 102, 143, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .city-tab.active {
+      background-color: #3498db;
+      color: #ffffff;
+      transform: none;
+    }
+
+    /* ==== FILTER BAR ==== */
+    #filterDiv {
+      display: none;
+      margin-bottom: 15px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .filter-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .filter-field label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    .filter-field select,
+    .filter-field input {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      color: #333;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .filter-field select:focus,
+    .filter-field input:focus {
+      border-color: #3498db;
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    /* ==== TABLE ==== */
     table {
       border-collapse: collapse;
       width: 100%;
       table-layout: fixed;
     }
+
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
@@ -18,14 +105,15 @@
       word-wrap: break-word;
     }
 
-    th:nth-child(1), td:nth-child(1) { width: 20%; } /* QR kodas */
-    th:nth-child(2), td:nth-child(2) { width: 30%; } /* Vaizdas */
-    th:nth-child(3), td:nth-child(3) { width: 30%; } /* Įrenginio pavadinimas */
-    th:nth-child(4), td:nth-child(4) { width: 20%; } /* Veiksmai */
+    th:nth-child(1), td:nth-child(1) { width: 15%; }
+    th:nth-child(2), td:nth-child(2) { width: 15%; }
+    th:nth-child(3), td:nth-child(3) { width: 20%; }
+    th:nth-child(4), td:nth-child(4) { width: 15%; }
+    th:nth-child(5), td:nth-child(5) { width: 35%; }
 
     button { margin: 5px 0; padding: 5px 10px; cursor: pointer; }
     #bulkQrForm { margin-bottom: 10px; }
-    input { padding: 5px; margin-right: 5px; width: 100px; }
+    input[type="number"] { padding: 5px; margin-right: 5px; width: 100px; }
     img { display: block; margin: 0 auto; max-width: 100%; }
 
     #message {
@@ -36,9 +124,53 @@
     }
     #message.success { background-color: #d4edda; color: #155724; }
     #message.error   { background-color: #f8d7da; color: #721c24; }
+
+    /* ==== MODALS ==== */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+      background-color: white;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    .modal-content h3 { margin-top: 0; }
+
+    .modal-content input,
+    .modal-content select {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      box-sizing: border-box;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      padding: 10px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- CITY TABS -->
+  <div class="city-tabs" id="cityTabs"></div>
+
   <h1>QR kodai ir įrenginiai</h1>
 
   <div id="message"></div>
@@ -47,7 +179,34 @@
   <div id="bulkQrForm">
     <input type="number" id="qrCount" placeholder="QR kiekis" min="1" />
     <button onclick="createBulkQR()">Sukurti QR kodus</button>
+    <button onclick="toggleFilters()">Filtruoti</button>
     <button class="reset-btn" onclick="window.location.href='index.html'">Grįžti</button>
+  </div>
+
+  <!-- FILTERS -->
+  <div id="filterDiv">
+    <div class="filter-grid">
+
+      <div class="filter-field">
+        <label>Įrenginys:</label>
+        <input type="text" id="filterDevice" placeholder="Ieškoti įrenginio..." oninput="applyFilters()">
+      </div>
+
+      <div class="filter-field">
+        <label>Priskirtas:</label>
+        <select id="filterAssigned">
+          <option value="">Visi</option>
+          <option value="yes">Priskirtas</option>
+          <option value="no">Nepriskirtas</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="filter-actions">
+      <button onclick="applyFilters()">Taikyti</button>
+      <button onclick="resetFilters()">Atstatyti</button>
+    </div>
   </div>
 
   <table id="qrcodes">
@@ -55,72 +214,204 @@
       <th>QR kodas</th>
       <th>QR vaizdas</th>
       <th>Įrenginio pavadinimas</th>
+      <th>Miestas</th>
       <th>Veiksmai</th>
     </tr>
   </table>
 
+  <!-- Assign Device Modal -->
+  <div id="assignModal" class="modal">
+    <div class="modal-content">
+      <h3>Priskirti įrenginį</h3>
+      <input type="text" id="deviceNameInput" placeholder="Įrenginio pavadinimas" />
+      <select id="citySelect">
+        <option value="">Pasirinkite miestą...</option>
+      </select>
+      <div class="modal-buttons">
+        <button onclick="confirmAssign()">Patvirtinti</button>
+        <button class="reset-btn" onclick="closeModal('assignModal')">Atšaukti</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change City Modal -->
+  <div id="changeCityModal" class="modal">
+    <div class="modal-content">
+      <h3>Keisti miestą</h3>
+      <p id="currentCityText"></p>
+      <select id="citySelectChange">
+        <option value="">Pasirinkite naują miestą...</option>
+      </select>
+      <div class="modal-buttons">
+        <button onclick="confirmChangeCity()">Patvirtinti</button>
+        <button class="reset-btn" onclick="closeModal('changeCityModal')">Atšaukti</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const messageEl = document.getElementById('message');
+    let currentQrId = null;
+    let cities = [];
+    let allQRCodes = [];
+    let currentCityId = '';
 
-    function showMessage(text, type='success') {
+    function showMessage(text, type = 'success') {
       messageEl.textContent = text;
       messageEl.className = type === 'success' ? 'success' : 'error';
       messageEl.style.display = 'block';
       setTimeout(() => messageEl.style.display = 'none', 4000);
     }
 
-    async function loadQRCodes() {
-      try {
-        const res = await fetch('/qrcodes');
-        const codes = await res.json();
-        const table = document.getElementById('qrcodes');
-
-        table.innerHTML = `
-          <tr>
-            <th>QR kodas</th>
-            <th>QR vaizdas</th>
-            <th>Įrenginio pavadinimas</th>
-            <th>Veiksmai</th>
-          </tr>
-        `;
-
-        codes.forEach(q => {
-          const hasDevice = !!q.device_id;
-
-          const actionsHtml = hasDevice
-            ? `
-              <button onclick="openRules(${q.device_id})">Taisyklės</button><br>
-              <button class="reset-btn" onclick="deleteDevice(${q.device_id})">Ištrinti įrenginį</button><br>
-              <a href="${q.qr_image}" download="${q.qr_code}.png">
-                <button>Parsisiųsti QR</button>
-              </a>
-            `
-            : `
-              <button onclick="assignDevice(${q.qr_id})">Priskirti įrenginį</button><br>
-              <a href="${q.qr_image}" download="${q.qr_code}.png">
-                <button>Parsisiųsti QR</button>
-              </a>
-            `;
-
-          table.innerHTML += `
-            <tr>
-              <td>${q.qr_code}</td>
-              <td>
-                <a href="${q.qr_image}" target="_blank">
-                  <img src="${q.qr_image}" width="100" />
-                </a>
-              </td>
-              <td>${q.device_name || ''}</td>
-              <td style="white-space: nowrap;">${actionsHtml}</td>
-            </tr>
-          `;
-        });
-      } catch (err) {
-        console.error("Error loading QR codes:", err);
-        showMessage("Klaida įkeliant QR kodus", "error");
-      }
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = 'none';
+      currentQrId = null;
     }
 
+    /* ===== LOAD CITIES + BUILD TABS ===== */
+    async function loadCities() {
+      const res = await fetch('/cities');
+      cities = await res.json();
+
+      const cityTabs = document.getElementById('cityTabs');
+      cityTabs.innerHTML = '';
+
+      cities.forEach((city, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'city-tab';
+        btn.dataset.city = city.id;
+        btn.textContent = city.code;
+        cityTabs.appendChild(btn);
+
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.city-tab').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentCityId = city.id;
+          applyFilters();
+        });
+      });
+
+      // Default: no city selected (VISI)
+      currentCityId = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = 'city-tab active';
+      allBtn.textContent = 'VISI';
+      cityTabs.appendChild(allBtn);
+
+      allBtn.addEventListener('click', () => {
+        document.querySelectorAll('.city-tab').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        currentCityId = '';
+        applyFilters();
+      });
+
+      // Populate modal city selects
+      const citySelect = document.getElementById('citySelect');
+      const citySelectChange = document.getElementById('citySelectChange');
+      citySelect.innerHTML = '<option value="">Pasirinkite miestą...</option>';
+      citySelectChange.innerHTML = '<option value="">Pasirinkite naują miestą...</option>';
+      cities.forEach(c => {
+        citySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+        citySelectChange.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+      });
+    }
+
+    /* ===== LOAD ALL QR CODES ===== */
+    async function loadAllQRCodes() {
+      const res = await fetch('/qrcodes');
+      allQRCodes = await res.json();
+      applyFilters();
+    }
+
+    /* ===== APPLY FILTERS (client-side) ===== */
+    function applyFilters() {
+      const searchVal = document.getElementById('filterDevice').value.toLowerCase().trim();
+      const assignedVal = document.getElementById('filterAssigned').value;
+
+      const filtered = allQRCodes.filter(q => {
+        const matchCity = currentCityId
+          ? String(q.city_id) === String(currentCityId)
+          : true;
+
+        const matchDevice = searchVal
+          ? (q.device_name || '').toLowerCase().includes(searchVal)
+          : true;
+
+        const matchAssigned =
+          assignedVal === 'yes' ? !!q.device_id :
+          assignedVal === 'no'  ? !q.device_id  :
+          true;
+
+        return matchCity && matchDevice && matchAssigned;
+      });
+
+      renderTable(filtered);
+    }
+
+    function resetFilters() {
+      document.getElementById('filterDevice').value = '';
+      document.getElementById('filterAssigned').value = '';
+      applyFilters();
+    }
+
+    function toggleFilters() {
+      const filterDiv = document.getElementById('filterDiv');
+      filterDiv.style.display =
+        filterDiv.style.display === 'none' || !filterDiv.style.display
+          ? 'block' : 'none';
+    }
+
+    /* ===== RENDER TABLE ===== */
+    function renderTable(codes) {
+      const table = document.getElementById('qrcodes');
+      table.innerHTML = `
+        <tr>
+          <th>QR kodas</th>
+          <th>QR vaizdas</th>
+          <th>Įrenginio pavadinimas</th>
+          <th>Miestas</th>
+          <th>Veiksmai</th>
+        </tr>
+      `;
+
+      codes.forEach(q => {
+        const hasDevice = !!q.device_id;
+        const cityName = q.city_name || 'Nepasirinktas';
+
+        const actionsHtml = hasDevice
+          ? `
+            <button onclick="openRules(${q.device_id})">Taisyklės</button><br>
+            <button onclick="changeCity(${q.qr_id}, \`${cityName.replace(/`/g, '\\`')}\`)">Keisti miestą</button><br>
+            <button class="reset-btn" onclick="deleteDevice(${q.device_id})">Ištrinti įrenginį</button><br>
+            <a href="${q.qr_image}" download="${q.qr_code}.png">
+              <button>Parsisiųsti QR</button>
+            </a>
+          `
+          : `
+            <button onclick="assignDevice(${q.qr_id})">Priskirti įrenginį</button><br>
+            <a href="${q.qr_image}" download="${q.qr_code}.png">
+              <button>Parsisiųsti QR</button>
+            </a>
+          `;
+
+        table.innerHTML += `
+          <tr>
+            <td>${q.qr_code}</td>
+            <td>
+              <a href="${q.qr_image}" target="_blank">
+                <img src="${q.qr_image}" width="100" />
+              </a>
+            </td>
+            <td>${q.device_name || ''}</td>
+            <td>${cityName}</td>
+            <td style="white-space: nowrap;">${actionsHtml}</td>
+          </tr>
+        `;
+      });
+    }
+
+    /* ===== BULK CREATE ===== */
     async function createBulkQR() {
       const count = parseInt(document.getElementById('qrCount').value);
       if (!count || count <= 0) return showMessage("Įveskite teisingą kiekį", "error");
@@ -133,69 +424,107 @@
         });
         if (res.ok) {
           const data = await res.json();
-          await loadQRCodes();
+          await loadAllQRCodes();
           showMessage(data.message, "success");
         } else {
-          const text = await res.text();
-          showMessage("Klaida: " + text, "error");
+          showMessage("Klaida: " + await res.text(), "error");
         }
       } catch (err) {
-        console.error("Error creating QR codes:", err);
         showMessage("Klaida kuriant QR kodus", "error");
       }
     }
 
-    // priskiriame naują įrenginį šiam QR
-    async function assignDevice(qr_id) {
-      const device_name = prompt("Įveskite įrenginio pavadinimą šiam QR kodui:");
-      if (!device_name) return;
+    /* ===== ASSIGN DEVICE ===== */
+    function assignDevice(qr_id) {
+      currentQrId = qr_id;
+      document.getElementById('deviceNameInput').value = '';
+      document.getElementById('citySelect').value = '';
+      document.getElementById('assignModal').style.display = 'block';
+    }
+
+    async function confirmAssign() {
+      const device_name = document.getElementById('deviceNameInput').value.trim();
+      const city_id = document.getElementById('citySelect').value;
+
+      if (!device_name) return showMessage("Įveskite įrenginio pavadinimą", "error");
+      if (!city_id) return showMessage("Pasirinkite miestą", "error");
 
       try {
-        const res = await fetch(`/qrcodes/${qr_id}/assign_device`, {
+        const res = await fetch(`/qrcodes/${currentQrId}/assign_device`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ device_name })
+          body: JSON.stringify({ device_name, city_id: parseInt(city_id) })
         });
         if (res.ok) {
-          await loadQRCodes();
-          showMessage(`Įrenginys "${device_name}" priskirtas QR kodui`, "success");
+          await loadAllQRCodes();
+          showMessage(`Įrenginys "${device_name}" priskirtas`, "success");
+          closeModal('assignModal');
         } else {
-          const text = await res.text();
-          showMessage("Klaida: " + text, "error");
+          showMessage("Klaida: " + await res.text(), "error");
         }
       } catch (err) {
-        console.error("Error assigning device:", err);
         showMessage("Klaida priskiriant įrenginį", "error");
       }
     }
 
-    // atidaryti taisyklių puslapį šiam įrenginiui
+    /* ===== CHANGE CITY ===== */
+    function changeCity(qr_id, currentCity) {
+      currentQrId = qr_id;
+      document.getElementById('currentCityText').textContent = `Dabartinis miestas: ${currentCity}`;
+      document.getElementById('citySelectChange').value = '';
+      document.getElementById('changeCityModal').style.display = 'block';
+    }
+
+    async function confirmChangeCity() {
+      const city_id = document.getElementById('citySelectChange').value;
+      if (!city_id) return showMessage("Pasirinkite miestą", "error");
+
+      try {
+        const res = await fetch(`/qrcodes/${currentQrId}/change_city`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ city_id: parseInt(city_id) })
+        });
+        if (res.ok) {
+          await loadAllQRCodes();
+          showMessage("Miestas pakeistas", "success");
+          closeModal('changeCityModal');
+        } else {
+          showMessage("Klaida: " + await res.text(), "error");
+        }
+      } catch (err) {
+        showMessage("Klaida keičiant miestą", "error");
+      }
+    }
+
+    /* ===== RULES / DELETE ===== */
     function openRules(deviceId) {
       window.location.href = `device.html?id=${deviceId}`;
     }
 
-    // ištrinti įrenginį – po to tas QR vėl bus „laisvas“
     async function deleteDevice(deviceId) {
       if (!confirm("Ar tikrai norite ištrinti įrenginį?")) return;
 
       try {
-        const res = await fetch(`/devices/${deviceId}`, {
-          method: 'DELETE'
-        });
+        const res = await fetch(`/devices/${deviceId}`, { method: 'DELETE' });
         if (res.ok) {
-          await loadQRCodes();
+          await loadAllQRCodes();
           showMessage("Įrenginys ištrintas", "success");
         } else {
-          const text = await res.text();
-          showMessage("Klaida: " + text, "error");
+          showMessage("Klaida: " + await res.text(), "error");
         }
       } catch (err) {
-        console.error("Error deleting device:", err);
         showMessage("Klaida trinant įrenginį", "error");
       }
     }
 
-    loadQRCodes();
+    /* ===== INIT ===== */
+    async function init() {
+      await loadCities();
+      await loadAllQRCodes();
+    }
+
+    init();
   </script>
 </body>
 </html>
