@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const pool = require('../config/database');
 const { addDays, addWeeks, addMonths, addYears, format, parseISO, getDay } = require('date-fns');
 
-cron.schedule('30 08 * * *', async () => {
+cron.schedule('59 23 * * *', async () => {
   try {
     const conn = await pool.getConnection();
     const tomorrow = new Date();

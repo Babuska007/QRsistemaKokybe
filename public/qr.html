@@ -3,6 +3,8 @@
 <head>
   <title>QR kodai ir įrenginiai</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- QR Code library iš CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
 
@@ -114,7 +116,19 @@
     button { margin: 5px 0; padding: 5px 10px; cursor: pointer; }
     #bulkQrForm { margin-bottom: 10px; }
     input[type="number"] { padding: 5px; margin-right: 5px; width: 100px; }
-    img { display: block; margin: 0 auto; max-width: 100%; }
+
+    /* QR container */
+    .qr-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .qr-container canvas,
+    .qr-container img {
+      max-width: 100px;
+      max-height: 100px;
+    }
 
     #message {
       margin: 10px 0;
@@ -186,12 +200,10 @@
   <!-- FILTERS -->
   <div id="filterDiv">
     <div class="filter-grid">
-
       <div class="filter-field">
         <label>Įrenginys:</label>
         <input type="text" id="filterDevice" placeholder="Ieškoti įrenginio..." oninput="applyFilters()">
       </div>
-
       <div class="filter-field">
         <label>Priskirtas:</label>
         <select id="filterAssigned">
@@ -200,9 +212,7 @@
           <option value="no">Nepriskirtas</option>
         </select>
       </div>
-
     </div>
-
     <div class="filter-actions">
       <button onclick="applyFilters()">Taikyti</button>
       <button onclick="resetFilters()">Atstatyti</button>
@@ -251,6 +261,7 @@
 
   <script>
     const messageEl = document.getElementById('message');
+    const PUBLIC_BASE_URL = window.location.origin;
     let currentQrId = null;
     let cities = [];
     let allQRCodes = [];
@@ -268,6 +279,54 @@
       currentQrId = null;
     }
 
+    /* ===== GENERATE QR CODE dinamiškai ===== */
+    function generateQRCode(containerId, qrCode) {
+      const url = `${PUBLIC_BASE_URL}/scan?qrId=${qrCode}`;
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      new QRCode(container, {
+        text: url,
+        width: 100,
+        height: 100,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    /* ===== DOWNLOAD QR CODE ===== */
+    function downloadQR(qrCode) {
+      const url = `${PUBLIC_BASE_URL}/scan?qrId=${qrCode}`;
+
+      // Sukuriame laikiną canvas
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      document.body.appendChild(tempDiv);
+
+      const qr = new QRCode(tempDiv, {
+        text: url,
+        width: 300,
+        height: 300,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      // Palaukiame kol canvas bus sugeneruotas
+      setTimeout(() => {
+        const canvas = tempDiv.querySelector('canvas');
+        if (canvas) {
+          const link = document.createElement('a');
+          link.download = `${qrCode}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        }
+        document.body.removeChild(tempDiv);
+      }, 200);
+    }
+
     /* ===== LOAD CITIES + BUILD TABS ===== */
     async function loadCities() {
       const res = await fetch('/cities');
@@ -276,7 +335,7 @@
       const cityTabs = document.getElementById('cityTabs');
       cityTabs.innerHTML = '';
 
-      cities.forEach((city, index) => {
+      cities.forEach((city) => {
         const btn = document.createElement('button');
         btn.className = 'city-tab';
         btn.dataset.city = city.id;
@@ -291,7 +350,6 @@
         });
       });
 
-      // Default: no city selected (VISI)
       currentCityId = '';
 
       const allBtn = document.createElement('button');
@@ -324,7 +382,7 @@
       applyFilters();
     }
 
-    /* ===== APPLY FILTERS (client-side) ===== */
+    /* ===== APPLY FILTERS ===== */
     function applyFilters() {
       const searchVal = document.getElementById('filterDevice').value.toLowerCase().trim();
       const assignedVal = document.getElementById('filterAssigned').value;
@@ -378,36 +436,32 @@
       codes.forEach(q => {
         const hasDevice = !!q.device_id;
         const cityName = q.city_name || 'Nepasirinktas';
+        const containerId = `qr-${q.qr_id}`;
 
         const actionsHtml = hasDevice
           ? `
             <button onclick="openRules(${q.device_id})">Taisyklės</button><br>
             <button onclick="changeCity(${q.qr_id}, \`${cityName.replace(/`/g, '\\`')}\`)">Keisti miestą</button><br>
             <button class="reset-btn" onclick="deleteDevice(${q.device_id})">Ištrinti įrenginį</button><br>
-            <a href="${q.qr_image}" download="${q.qr_code}.png">
-              <button>Parsisiųsti QR</button>
-            </a>
+            <button onclick="downloadQR('${q.qr_code}')">Parsisiųsti QR</button>
           `
           : `
             <button onclick="assignDevice(${q.qr_id})">Priskirti įrenginį</button><br>
-            <a href="${q.qr_image}" download="${q.qr_code}.png">
-              <button>Parsisiųsti QR</button>
-            </a>
+            <button onclick="downloadQR('${q.qr_code}')">Parsisiųsti QR</button>
           `;
 
-        table.innerHTML += `
-          <tr>
-            <td>${q.qr_code}</td>
-            <td>
-              <a href="${q.qr_image}" target="_blank">
-                <img src="${q.qr_image}" width="100" />
-              </a>
-            </td>
-            <td>${q.device_name || ''}</td>
-            <td>${cityName}</td>
-            <td style="white-space: nowrap;">${actionsHtml}</td>
-          </tr>
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${q.qr_code}</td>
+          <td><div class="qr-container" id="${containerId}"></div></td>
+          <td>${q.device_name || ''}</td>
+          <td>${cityName}</td>
+          <td style="white-space: nowrap;">${actionsHtml}</td>
         `;
+        table.appendChild(row);
+
+        // Generuojame QR kodą po to kai elementas yra DOM'e
+        setTimeout(() => generateQRCode(containerId, q.qr_code), 0);
       });
     }
 

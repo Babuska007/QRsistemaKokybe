@@ -1,37 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const QRCode = require('qrcode');
-const fs = require('fs');
-const path = require('path');
 const pool = require('../config/database');
 
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL;
 
-// Bulk create QR codes
+// Bulk create QR codes - tik DB įrašai, be PNG failų
 router.post('/bulk', async (req, res) => {
   const { count } = req.body;
   if (!count || count <= 0) return res.status(400).send("Invalid count");
 
   try {
-    const qrDir = path.join(__dirname, '..', 'public', 'qr');
-    if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
-
     const created = [];
     for (let i = 0; i < count; i++) {
       const qr_code = `QR_${Date.now()}_${i}`;
-      const qrFileName = `${qr_code}.png`;
-      const qrFilePath = path.join(qrDir, qrFileName);
-      const qrUrl = `${PUBLIC_BASE_URL}/scan?qrId=${qr_code}`;
-
-      await QRCode.toFile(qrFilePath, qrUrl, { color: { dark: "#000", light: "#fff" } });
-      const qrImagePath = `/qr/${qrFileName}`;
 
       await pool.execute(
-        'INSERT INTO qrcodes (qr_code, qr_image) VALUES (?, ?)',
-        [qr_code, qrImagePath]
+        'INSERT INTO qrcodes (qr_code) VALUES (?)',
+        [qr_code]
       );
 
-      created.push({ qr_code, qr_image: qrImagePath });
+      created.push({ qr_code });
     }
 
     res.status(201).json({ message: `${count} QR codes created`, created });
@@ -48,7 +36,6 @@ router.get('/', async (req, res) => {
       SELECT 
         q.qr_id,
         q.qr_code,
-        q.qr_image,
         q.city_id,
         q.system_group_id,
         c.name AS city_name,

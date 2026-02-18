@@ -6,7 +6,8 @@ const pool = require('../config/database');
 router.get('/', async (req, res) => {
   try {
     const [rows] = await pool.execute(`
-      SELECT id, first_name, last_name, pin_code, is_active, created_at
+      SELECT id, first_name, last_name, pin_code, is_active,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at
       FROM users
       ORDER BY created_at DESC
     `);
