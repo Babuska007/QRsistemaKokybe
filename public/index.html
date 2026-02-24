@@ -11,6 +11,41 @@
       margin: 20px;
     }
 
+    /* ==== HEADER WITH LOGOUT ==== */
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    .logout-btn {
+      background: #e74c3c;
+      color: white;
+      padding: 8px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: #c0392b;
+      transform: translateY(-2px);
+    }
+
     /* ==== CITY TABS ==== */
     .city-tabs {
       display: flex;
@@ -120,6 +155,15 @@
 
 <body>
 
+<!-- ===== HEADER WITH LOGOUT ===== -->
+<div class="header-container">
+  <div></div> <!-- Empty div for spacing -->
+  <div class="user-info">
+    <span class="user-name" id="userName">Vartotojas</span>
+    <button class="logout-btn" onclick="logout()">Atsijungti</button>
+  </div>
+</div>
+
 <!-- ===== CITY TABS ===== -->
 <div class="city-tabs" id="cityTabs"></div>
 
@@ -131,6 +175,7 @@
 <button onclick="location.href='users.html'">Naudotojai</button>
 <button onclick="location.href='groups.html'">Sistemų grupės</button>
 <button onclick="location.href='calendar.html'">Kalendorius</button>
+<button id="adminBtn" onclick="location.href='admin.html'" style="display: none;">Admin</button>
 
 <!-- ===== FILTERS ===== -->
 <div id="filterDiv">
@@ -198,6 +243,51 @@
 let currentCityId = '';
 let allGroups = [];
 let allDevices = [];
+let currentUser = null;
+
+/* ===== CHECK AUTH & LOAD USER INFO ===== */
+async function checkAuth() {
+  try {
+    const res = await fetch('/auth/status');
+    const data = await res.json();
+
+    if (!data.authenticated) {
+      window.location.href = '/login.html';
+      return false;
+    }
+
+    currentUser = data.user;
+    document.getElementById('userName').textContent = currentUser.username;
+
+    // Show admin button only for superadmin
+    if (currentUser.role === 'superadmin') {
+      document.getElementById('adminBtn').style.display = 'inline-block';
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Auth check failed:', err);
+    window.location.href = '/login.html';
+    return false;
+  }
+}
+
+/* ===== LOGOUT ===== */
+async function logout() {
+  try {
+    await fetch('/auth/logout', { method: 'POST' });
+    
+    // Clear all cookies
+    document.cookie.split(";").forEach(c => {
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    
+    window.location.href = '/login.html';
+  } catch (err) {
+    console.error('Logout error:', err);
+    window.location.href = '/login.html';
+  }
+}
 
 /* ===== LOAD CITIES ===== */
 async function loadCities() {
@@ -243,7 +333,6 @@ async function loadCities() {
     updateDeviceFilter();
     applyFilters();
   });
-  // Returns here after currentCityId is set
 }
 
 /* ===== LOAD ALL GROUPS (once) ===== */
@@ -412,12 +501,15 @@ async function exportLogs() {
   a.click();
 }
 
-// Initialize - order matters: cities first, then filters
+// Initialize - order matters: auth first, then cities, then filters
 async function init() {
-  await loadCities();           // sets currentCityId to first city
+  const authenticated = await checkAuth();
+  if (!authenticated) return;
+
+  await loadCities();
   await Promise.all([
-    loadAllGroups(),            // loads groups → calls updateGroupFilter()
-    loadAllDevices(),           // loads devices → calls updateDeviceFilter()
+    loadAllGroups(),
+    loadAllDevices(),
   ]);
   loadLogs(currentCityId ? `cityId=${currentCityId}` : '');
 }

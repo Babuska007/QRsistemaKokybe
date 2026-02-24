@@ -3,12 +3,10 @@
 <head>
   <title>QR kodai ir įrenginiai</title>
   <link rel="stylesheet" href="styles.css">
-  <!-- QR Code library iš CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
 
-    /* ==== CITY TABS ==== */
     .city-tabs {
       display: flex;
       gap: 12px;
@@ -30,18 +28,9 @@
       transition: all 0.2s;
     }
 
-    .city-tab:hover {
-      background: rgba(58, 102, 143, 0.15);
-      transform: translateY(-1px);
-    }
+    .city-tab:hover { background: rgba(58, 102, 143, 0.15); transform: translateY(-1px); }
+    .city-tab.active { background-color: #3498db; color: #ffffff; transform: none; }
 
-    .city-tab.active {
-      background-color: #3498db;
-      color: #ffffff;
-      transform: none;
-    }
-
-    /* ==== FILTER BAR ==== */
     #filterDiv {
       display: none;
       margin-bottom: 15px;
@@ -58,20 +47,9 @@
       align-items: end;
     }
 
-    .filter-field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .filter-field label {
-      font-size: 13px;
-      font-weight: 600;
-      color: #444;
-    }
-
-    .filter-field select,
-    .filter-field input {
+    .filter-field { display: flex; flex-direction: column; gap: 4px; }
+    .filter-field label { font-size: 13px; font-weight: 600; color: #444; }
+    .filter-field select, .filter-field input {
       padding: 6px 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
@@ -81,32 +59,11 @@
       outline: none;
       transition: border 0.2s;
     }
+    .filter-field select:focus, .filter-field input:focus { border-color: #3498db; }
+    .filter-actions { display: flex; gap: 8px; margin-top: 14px; }
 
-    .filter-field select:focus,
-    .filter-field input:focus {
-      border-color: #3498db;
-    }
-
-    .filter-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    /* ==== TABLE ==== */
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      table-layout: fixed;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-      word-wrap: break-word;
-    }
-
+    table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; word-wrap: break-word; }
     th:nth-child(1), td:nth-child(1) { width: 15%; }
     th:nth-child(2), td:nth-child(2) { width: 15%; }
     th:nth-child(3), td:nth-child(3) { width: 20%; }
@@ -117,18 +74,8 @@
     #bulkQrForm { margin-bottom: 10px; }
     input[type="number"] { padding: 5px; margin-right: 5px; width: 100px; }
 
-    /* QR container */
-    .qr-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .qr-container canvas,
-    .qr-container img {
-      max-width: 100px;
-      max-height: 100px;
-    }
+    .qr-container { display: flex; justify-content: center; align-items: center; }
+    .qr-container canvas, .qr-container img { max-width: 100px; max-height: 100px; }
 
     #message {
       margin: 10px 0;
@@ -139,7 +86,6 @@
     #message.success { background-color: #d4edda; color: #155724; }
     #message.error   { background-color: #f8d7da; color: #721c24; }
 
-    /* ==== MODALS ==== */
     .modal {
       display: none;
       position: fixed;
@@ -159,37 +105,34 @@
     }
 
     .modal-content h3 { margin-top: 0; }
-
-    .modal-content input,
-    .modal-content select {
+    .modal-content input, .modal-content select {
       width: 100%;
       padding: 8px;
       margin: 10px 0;
       box-sizing: border-box;
     }
 
-    .modal-buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 15px;
-    }
+    .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
+    .modal-buttons button { flex: 1; padding: 10px; }
 
-    .modal-buttons button {
-      flex: 1;
-      padding: 10px;
+    /* QR delete button - distinct style */
+    .btn-qr-delete {
+      background-color: #3498db;
+      color: white;
+    }
+    .btn-qr-delete:hover {
+      background-color: #217dbb;
     }
   </style>
 </head>
 <body>
 
-  <!-- CITY TABS -->
   <div class="city-tabs" id="cityTabs"></div>
 
   <h1>QR kodai ir įrenginiai</h1>
 
   <div id="message"></div>
 
-  <!-- Bulk QR form -->
   <div id="bulkQrForm">
     <input type="number" id="qrCount" placeholder="QR kiekis" min="1" />
     <button onclick="createBulkQR()">Sukurti QR kodus</button>
@@ -197,7 +140,6 @@
     <button class="reset-btn" onclick="window.location.href='index.html'">Grįžti</button>
   </div>
 
-  <!-- FILTERS -->
   <div id="filterDiv">
     <div class="filter-grid">
       <div class="filter-field">
@@ -266,6 +208,7 @@
     let cities = [];
     let allQRCodes = [];
     let currentCityId = '';
+    let isSuperAdmin = false; // set after auth check
 
     function showMessage(text, type = 'success') {
       messageEl.textContent = text;
@@ -279,12 +222,10 @@
       currentQrId = null;
     }
 
-    /* ===== GENERATE QR CODE dinamiškai ===== */
     function generateQRCode(containerId, qrCode) {
       const url = `${PUBLIC_BASE_URL}/scan?qrId=${qrCode}`;
       const container = document.getElementById(containerId);
       if (!container) return;
-
       new QRCode(container, {
         text: url,
         width: 100,
@@ -295,17 +236,14 @@
       });
     }
 
-    /* ===== DOWNLOAD QR CODE ===== */
     function downloadQR(qrCode) {
       const url = `${PUBLIC_BASE_URL}/scan?qrId=${qrCode}`;
-
-      // Sukuriame laikiną canvas
       const tempDiv = document.createElement('div');
       tempDiv.style.position = 'absolute';
       tempDiv.style.left = '-9999px';
       document.body.appendChild(tempDiv);
 
-      const qr = new QRCode(tempDiv, {
+      new QRCode(tempDiv, {
         text: url,
         width: 300,
         height: 300,
@@ -314,7 +252,6 @@
         correctLevel: QRCode.CorrectLevel.M
       });
 
-      // Palaukiame kol canvas bus sugeneruotas
       setTimeout(() => {
         const canvas = tempDiv.querySelector('canvas');
         if (canvas) {
@@ -327,7 +264,6 @@
       }, 200);
     }
 
-    /* ===== LOAD CITIES + BUILD TABS ===== */
     async function loadCities() {
       const res = await fetch('/cities');
       cities = await res.json();
@@ -341,7 +277,6 @@
         btn.dataset.city = city.id;
         btn.textContent = city.code;
         cityTabs.appendChild(btn);
-
         btn.addEventListener('click', () => {
           document.querySelectorAll('.city-tab').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
@@ -350,13 +285,10 @@
         });
       });
 
-      currentCityId = '';
-
       const allBtn = document.createElement('button');
       allBtn.className = 'city-tab active';
       allBtn.textContent = 'VISI';
       cityTabs.appendChild(allBtn);
-
       allBtn.addEventListener('click', () => {
         document.querySelectorAll('.city-tab').forEach(b => b.classList.remove('active'));
         allBtn.classList.add('active');
@@ -364,7 +296,6 @@
         applyFilters();
       });
 
-      // Populate modal city selects
       const citySelect = document.getElementById('citySelect');
       const citySelectChange = document.getElementById('citySelectChange');
       citySelect.innerHTML = '<option value="">Pasirinkite miestą...</option>';
@@ -375,32 +306,22 @@
       });
     }
 
-    /* ===== LOAD ALL QR CODES ===== */
     async function loadAllQRCodes() {
       const res = await fetch('/qrcodes');
       allQRCodes = await res.json();
       applyFilters();
     }
 
-    /* ===== APPLY FILTERS ===== */
     function applyFilters() {
       const searchVal = document.getElementById('filterDevice').value.toLowerCase().trim();
       const assignedVal = document.getElementById('filterAssigned').value;
 
       const filtered = allQRCodes.filter(q => {
-        const matchCity = currentCityId
-          ? String(q.city_id) === String(currentCityId)
-          : true;
-
-        const matchDevice = searchVal
-          ? (q.device_name || '').toLowerCase().includes(searchVal)
-          : true;
-
+        const matchCity = currentCityId ? String(q.city_id) === String(currentCityId) : true;
+        const matchDevice = searchVal ? (q.device_name || '').toLowerCase().includes(searchVal) : true;
         const matchAssigned =
           assignedVal === 'yes' ? !!q.device_id :
-          assignedVal === 'no'  ? !q.device_id  :
-          true;
-
+          assignedVal === 'no'  ? !q.device_id  : true;
         return matchCity && matchDevice && matchAssigned;
       });
 
@@ -416,11 +337,9 @@
     function toggleFilters() {
       const filterDiv = document.getElementById('filterDiv');
       filterDiv.style.display =
-        filterDiv.style.display === 'none' || !filterDiv.style.display
-          ? 'block' : 'none';
+        filterDiv.style.display === 'none' || !filterDiv.style.display ? 'block' : 'none';
     }
 
-    /* ===== RENDER TABLE ===== */
     function renderTable(codes) {
       const table = document.getElementById('qrcodes');
       table.innerHTML = `
@@ -438,16 +357,23 @@
         const cityName = q.city_name || 'Nepasirinktas';
         const containerId = `qr-${q.qr_id}`;
 
+        // QR delete button shown ONLY for superadmin
+        const qrDeleteBtn = isSuperAdmin
+          ? `<button class="btn-qr-delete" onclick="deleteQRCode(${q.qr_id})">Ištrinti QR</button><br>`
+          : '';
+
         const actionsHtml = hasDevice
           ? `
             <button onclick="openRules(${q.device_id})">Taisyklės</button><br>
             <button onclick="changeCity(${q.qr_id}, \`${cityName.replace(/`/g, '\\`')}\`)">Keisti miestą</button><br>
             <button class="reset-btn" onclick="deleteDevice(${q.device_id})">Ištrinti įrenginį</button><br>
-            <button onclick="downloadQR('${q.qr_code}')">Parsisiųsti QR</button>
+            <button onclick="downloadQR('${q.qr_code}')">Parsisiųsti QR</button><br>
+            ${qrDeleteBtn}
           `
           : `
             <button onclick="assignDevice(${q.qr_id})">Priskirti įrenginį</button><br>
-            <button onclick="downloadQR('${q.qr_code}')">Parsisiųsti QR</button>
+            <button onclick="downloadQR('${q.qr_code}')">Parsisiųsti QR</button><br>
+            ${qrDeleteBtn}
           `;
 
         const row = document.createElement('tr');
@@ -459,13 +385,10 @@
           <td style="white-space: nowrap;">${actionsHtml}</td>
         `;
         table.appendChild(row);
-
-        // Generuojame QR kodą po to kai elementas yra DOM'e
         setTimeout(() => generateQRCode(containerId, q.qr_code), 0);
       });
     }
 
-    /* ===== BULK CREATE ===== */
     async function createBulkQR() {
       const count = parseInt(document.getElementById('qrCount').value);
       if (!count || count <= 0) return showMessage("Įveskite teisingą kiekį", "error");
@@ -488,7 +411,6 @@
       }
     }
 
-    /* ===== ASSIGN DEVICE ===== */
     function assignDevice(qr_id) {
       currentQrId = qr_id;
       document.getElementById('deviceNameInput').value = '';
@@ -499,7 +421,6 @@
     async function confirmAssign() {
       const device_name = document.getElementById('deviceNameInput').value.trim();
       const city_id = document.getElementById('citySelect').value;
-
       if (!device_name) return showMessage("Įveskite įrenginio pavadinimą", "error");
       if (!city_id) return showMessage("Pasirinkite miestą", "error");
 
@@ -521,7 +442,6 @@
       }
     }
 
-    /* ===== CHANGE CITY ===== */
     function changeCity(qr_id, currentCity) {
       currentQrId = qr_id;
       document.getElementById('currentCityText').textContent = `Dabartinis miestas: ${currentCity}`;
@@ -551,14 +471,12 @@
       }
     }
 
-    /* ===== RULES / DELETE ===== */
     function openRules(deviceId) {
       window.location.href = `device.html?id=${deviceId}`;
     }
 
     async function deleteDevice(deviceId) {
       if (!confirm("Ar tikrai norite ištrinti įrenginį?")) return;
-
       try {
         const res = await fetch(`/devices/${deviceId}`, { method: 'DELETE' });
         if (res.ok) {
@@ -572,8 +490,35 @@
       }
     }
 
-    /* ===== INIT ===== */
+    // Only superadmin can call this — button is hidden for others
+    async function deleteQRCode(qrId) {
+      if (!confirm("Ar tikrai norite ištrinti šį QR kodą? Tai pašalins ir susietą įrenginį!")) return;
+      try {
+        const res = await fetch(`/qrcodes/${qrId}`, { method: 'DELETE' });
+        if (res.ok) {
+          await loadAllQRCodes();
+          showMessage("QR kodas ištrintas", "success");
+        } else {
+          showMessage("Klaida: " + await res.text(), "error");
+        }
+      } catch (err) {
+        showMessage("Klaida trinant QR kodą", "error");
+      }
+    }
+
     async function init() {
+      // Check auth and get role before rendering
+      const authRes = await fetch('/auth/status');
+      const authData = await authRes.json();
+
+      if (!authData.authenticated) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      // Set superadmin flag — controls whether delete QR button appears
+      isSuperAdmin = authData.user.role === 'superadmin';
+
       await loadCities();
       await loadAllQRCodes();
     }

@@ -73,6 +73,21 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+CREATE TABLE IF NOT EXISTS `admins` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `role` enum('user','admin','superadmin') NOT NULL DEFAULT 'user',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_login` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 CREATE TABLE IF NOT EXISTS `scans` (
   `scan_id` int NOT NULL AUTO_INCREMENT,
   `device_id` int NOT NULL,
@@ -102,6 +117,9 @@ CREATE TABLE IF NOT EXISTS `device_rules` (
   KEY `device_id` (`device_id`),
   CONSTRAINT `device_rules_ibfk_1` FOREIGN KEY (`device_id`) REFERENCES `devices` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `admins` (`username`, `email`, `password_hash`, `role`) VALUES
+('itgedimai', 'itgedimai@ltou.lt', '$2b$10$dgdj0K6Tm89UUheNmHY3yus9bbD0LM4ekjIGBMXEDuU5CeAl75CAi', 'superadmin');
 
 INSERT IGNORE INTO cities (code, name) VALUES
 ('VNO', 'Vilnius'),

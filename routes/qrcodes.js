@@ -4,7 +4,7 @@ const pool = require('../config/database');
 
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL;
 
-// Bulk create QR codes - tik DB įrašai, be PNG failų
+// Bulk create QR codes
 router.post('/bulk', async (req, res) => {
   const { count } = req.body;
   if (!count || count <= 0) return res.status(400).send("Invalid count");
@@ -13,15 +13,9 @@ router.post('/bulk', async (req, res) => {
     const created = [];
     for (let i = 0; i < count; i++) {
       const qr_code = `QR_${Date.now()}_${i}`;
-
-      await pool.execute(
-        'INSERT INTO qrcodes (qr_code) VALUES (?)',
-        [qr_code]
-      );
-
+      await pool.execute('INSERT INTO qrcodes (qr_code) VALUES (?)', [qr_code]);
       created.push({ qr_code });
     }
-
     res.status(201).json({ message: `${count} QR codes created`, created });
   } catch (err) {
     console.error(err);
@@ -56,7 +50,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Assign a device name to a QR code
+// Assign a device to a QR code
 router.post('/:qrId/assign_device', async (req, res) => {
   const { qrId } = req.params;
   const { device_name, city_id } = req.body;
@@ -64,16 +58,8 @@ router.post('/:qrId/assign_device', async (req, res) => {
   if (!city_id) return res.status(400).send("Missing city_id");
 
   try {
-    await pool.execute(
-      "UPDATE qrcodes SET city_id = ? WHERE qr_id = ?",
-      [city_id, qrId]
-    );
-    
-    await pool.execute(
-      "INSERT INTO devices (device_name, qr_id, city_id) VALUES (?, ?, ?)",
-      [device_name, qrId, city_id]
-    );
-    
+    await pool.execute("UPDATE qrcodes SET city_id = ? WHERE qr_id = ?", [city_id, qrId]);
+    await pool.execute("INSERT INTO devices (device_name, qr_id, city_id) VALUES (?, ?, ?)", [device_name, qrId, city_id]);
     res.send(`Device "${device_name}" mapped to QR code successfully`);
   } catch (err) {
     console.error(err);
@@ -85,24 +71,35 @@ router.post('/:qrId/assign_device', async (req, res) => {
 router.post('/:qrId/change_city', async (req, res) => {
   const { qrId } = req.params;
   const { city_id } = req.body;
-  
   if (!city_id) return res.status(400).send("Missing city_id");
 
   try {
-    await pool.execute(
-      "UPDATE qrcodes SET city_id = ? WHERE qr_id = ?",
-      [city_id, qrId]
-    );
-    
-    await pool.execute(
-      "UPDATE devices SET city_id = ? WHERE qr_id = ?",
-      [city_id, qrId]
-    );
-    
+    await pool.execute("UPDATE qrcodes SET city_id = ? WHERE qr_id = ?", [city_id, qrId]);
+    await pool.execute("UPDATE devices SET city_id = ? WHERE qr_id = ?", [city_id, qrId]);
     res.send("City updated successfully");
   } catch (err) {
     console.error(err);
     res.status(500).send("Error updating city");
+  }
+});
+
+// DELETE QR code — superadmin only
+// This checks req.session.user.role on the route level
+router.delete('/:qrId', async (req, res) => {
+  if (!req.session?.user || req.session.user.role !== 'superadmin') {
+    return res.status(403).send("Tik superadmin gali trinti QR kodus");
+  }
+
+  const { qrId } = req.params;
+
+  try {
+    // First delete linked device (FK constraint), then the QR code
+    await pool.execute("UPDATE devices SET qr_id = NULL WHERE qr_id = ?", [qrId]);
+    await pool.execute("DELETE FROM qrcodes WHERE qr_id = ?", [qrId]);
+    res.send("QR kodas ištrintas");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Klaida trinant QR kodą");
   }
 });
 

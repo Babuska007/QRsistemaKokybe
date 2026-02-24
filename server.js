@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const session = require('express-session');
 const path = require('path');
 
 const app = express();
@@ -7,13 +8,61 @@ const PORT = process.env.APP_PORT || 3000;
 const HOST = process.env.APP_HOST || '0.0.0.0';
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL;
 
+// Session configuration (BEFORE other middleware)
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // set to true if using https
+    httpOnly: true,
+    maxAge: 1 * 60 * 60 * 1000 // 1 hours
+  }
+}));
+
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
+
+
+//Protect ALL .html pages (except login.html) when not authenticated.
+app.use((req, res, next) => {
+  const isHtml = req.path === '/' || req.path.endsWith('.html');
+  const isLogin = req.path === '/' || req.path === '/login.html';
+  const isPublicScan = req.path.startsWith('/scan'); // keep scan public (QR users)
+
+  // Not logged in: only allow login page (and public scan)
+  if (!req.session?.user) {
+    if (isHtml && !isLogin && !isPublicScan) {
+      return res.redirect('/login.html');
+    }
+    return next();
+  }
+
+  // Logged in: don't allow going back to login page
+  if (req.session?.user && req.path === '/login.html') {
+    return res.redirect('/index.html');
+  }
+
+  next();
+});
+
+// Serve static files, but DO NOT auto-serve index.html at "/"
+app.use(express.static('public', { index: false }));
+
+// Root route: smart redirect
+app.get('/', (req, res) => {
+  if (req.session?.user) return res.redirect('/index.html');
+  return res.redirect('/login.html');
+});
 
 const initDatabase = require('./config/initdatabase');
 
+// Import middleware
+const { requireAuth, requireRole } = require('./middleware/auth');
+
 // Import routes
+const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
 const qrcodesRoutes = require('./routes/qrcodes');
 const devicesRoutes = require('./routes/devices');
 const usersRoutes = require('./routes/users');
@@ -24,15 +73,24 @@ const calendarRoutes = require('./routes/calendar');
 const citiesRoutes = require('./routes/cities');
 const deviceRulesRoutes = require('./routes/device_rules');
 
-app.use('/qrcodes', qrcodesRoutes);
-app.use('/devices', devicesRoutes);
-app.use('/users', usersRoutes);
-app.use('/system_groups', groupsRoutes);
+// Auth routes (NO protection)
+app.use('/auth', authRoutes);
+
+// Admin routes (superadmin only)
+app.use('/admin', requireRole(['superadmin']), adminRoutes);
+
+// QR scan route (NO protection - must be public for users to scan QR codes)
 app.use('/scan', scansRoutes);
-app.use('/logs', logsRoutes);
-app.use('/calendar', calendarRoutes);
-app.use('/cities', citiesRoutes);
-app.use('/device_rules', deviceRulesRoutes);
+
+// Protected routes (require authentication)
+app.use('/qrcodes', requireAuth, qrcodesRoutes);
+app.use('/devices', requireAuth, devicesRoutes);
+app.use('/users', requireAuth, usersRoutes);
+app.use('/system_groups', requireAuth, groupsRoutes);
+app.use('/logs', requireAuth, logsRoutes);
+app.use('/calendar', requireAuth, calendarRoutes);
+app.use('/cities', requireAuth, citiesRoutes);
+app.use('/device_rules', requireAuth, deviceRulesRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
