@@ -21,6 +21,7 @@ services:
       APP_HOST: ${APP_HOST:-0.0.0.0}
       APP_PORT: ${APP_PORT:-3000}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
 
       DB_HOST: ${DB_HOST:-mysql}
       DB_USER: ${DB_USER:-root}
