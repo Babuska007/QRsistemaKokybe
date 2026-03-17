@@ -241,26 +241,65 @@
       const tempDiv = document.createElement('div');
       tempDiv.style.position = 'absolute';
       tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '-9999px';
       document.body.appendChild(tempDiv);
+
+      const finalSize = 1000;   // final PNG size
+      const border = 24;        // slight white border
+      const qrSize = finalSize - (border * 2);
 
       new QRCode(tempDiv, {
         text: url,
-        width: 300,
-        height: 300,
+        width: qrSize,
+        height: qrSize,
         colorDark: "#000000",
         colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.M
+        correctLevel: QRCode.CorrectLevel.H
       });
 
       setTimeout(() => {
-        const canvas = tempDiv.querySelector('canvas');
-        if (canvas) {
+        const sourceCanvas = tempDiv.querySelector('canvas');
+        const sourceImg = tempDiv.querySelector('img');
+
+        if (!sourceCanvas && !sourceImg) {
+          document.body.removeChild(tempDiv);
+          return;
+        }
+
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = finalSize;
+        finalCanvas.height = finalSize;
+
+        const ctx = finalCanvas.getContext('2d');
+
+        // white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, finalSize, finalSize);
+
+        const finishDownload = () => {
           const link = document.createElement('a');
           link.download = `${qrCode}.png`;
-          link.href = canvas.toDataURL('image/png');
+          link.href = finalCanvas.toDataURL('image/png');
           link.click();
+          document.body.removeChild(tempDiv);
+        };
+
+        if (sourceCanvas) {
+          ctx.drawImage(sourceCanvas, border, border, qrSize, qrSize);
+          finishDownload();
+          return;
         }
-        document.body.removeChild(tempDiv);
+
+        // fallback if library rendered as <img>
+        sourceImg.onload = () => {
+          ctx.drawImage(sourceImg, border, border, qrSize, qrSize);
+          finishDownload();
+        };
+
+        if (sourceImg.complete) {
+          ctx.drawImage(sourceImg, border, border, qrSize, qrSize);
+          finishDownload();
+        }
       }, 200);
     }
 
