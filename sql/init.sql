@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `qrcodes` (
 CREATE TABLE IF NOT EXISTS `devices` (
   `id` int NOT NULL AUTO_INCREMENT,
   `device_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `qr_id` int DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `city_id` int NOT NULL,
