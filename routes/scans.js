@@ -23,7 +23,10 @@ router.get('/', async (req, res) => {
       [qr.qr_id]
     );
     if (deviceRows.length === 0) {
-      return res.status(404).send("Šiam QR kodui nepriskirtas joks įrenginys.");
+      return res.status(404).send(`
+        Šiam QR kodui nepriskirtas joks įrenginys.<br>
+        <strong>${qr.qr_code}</strong>
+      `);
     }
 
     const device = deviceRows[0];

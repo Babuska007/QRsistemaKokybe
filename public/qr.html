@@ -64,11 +64,12 @@
 
     table { border-collapse: collapse; width: 100%; table-layout: fixed; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; word-wrap: break-word; }
-    th:nth-child(1), td:nth-child(1) { width: 15%; }
-    th:nth-child(2), td:nth-child(2) { width: 15%; }
-    th:nth-child(3), td:nth-child(3) { width: 20%; }
-    th:nth-child(4), td:nth-child(4) { width: 15%; }
-    th:nth-child(5), td:nth-child(5) { width: 35%; }
+    th:nth-child(1), td:nth-child(1) { width: 13%; }
+    th:nth-child(2), td:nth-child(2) { width: 12%; }
+    th:nth-child(3), td:nth-child(3) { width: 18%; }
+    th:nth-child(4), td:nth-child(4) { width: 20%; }
+    th:nth-child(5), td:nth-child(5) { width: 12%; }
+    th:nth-child(6), td:nth-child(6) { width: 25%; }
 
     button { margin: 5px 0; padding: 5px 10px; cursor: pointer; }
     #bulkQrForm { margin-bottom: 10px; }
@@ -105,13 +106,29 @@
     }
 
     .modal-content h3 { margin-top: 0; }
-    .modal-content input, .modal-content select {
+    .modal-content input,
+    .modal-content select,
+    .modal-content textarea {
       width: 100%;
       padding: 8px;
       margin: 10px 0;
       box-sizing: border-box;
-    }
 
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: white;
+      color: #333;
+      outline: none;
+    }
+    .modal-content textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      padding: 8px;
+      margin: 10px 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
     .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
     .modal-buttons button { flex: 1; padding: 10px; }
 
@@ -148,16 +165,12 @@
       </div>
       <div class="filter-field">
         <label>Priskirtas:</label>
-        <select id="filterAssigned">
+        <select id="filterAssigned" onchange="applyFilters()">
           <option value="">Visi</option>
           <option value="yes">Priskirtas</option>
           <option value="no">Nepriskirtas</option>
         </select>
       </div>
-    </div>
-    <div class="filter-actions">
-      <button onclick="applyFilters()">Taikyti</button>
-      <button onclick="resetFilters()">Atstatyti</button>
     </div>
   </div>
 
@@ -166,6 +179,7 @@
       <th>QR kodas</th>
       <th>QR vaizdas</th>
       <th>Įrenginio pavadinimas</th>
+      <th>Aprašymas</th>
       <th>Miestas</th>
       <th>Veiksmai</th>
     </tr>
@@ -176,7 +190,7 @@
     <div class="modal-content">
       <h3>Priskirti įrenginį</h3>
       <input type="text" id="deviceNameInput" placeholder="Įrenginio pavadinimas" />
-      <select id="citySelect">
+        <textarea id="deviceDescriptionInput" placeholder="Aprašymas" rows="4"></textarea>      <select id="citySelect">
         <option value="">Pasirinkite miestą...</option>
       </select>
       <div class="modal-buttons">
@@ -209,6 +223,7 @@
     let allQRCodes = [];
     let currentCityId = '';
     let isSuperAdmin = false; // set after auth check
+    let isEditing = false;
 
     function showMessage(text, type = 'success') {
       messageEl.textContent = text;
@@ -356,12 +371,22 @@
       const assignedVal = document.getElementById('filterAssigned').value;
 
       const filtered = allQRCodes.filter(q => {
-        const matchCity = currentCityId ? String(q.city_id) === String(currentCityId) : true;
-        const matchDevice = searchVal ? (q.device_name || '').toLowerCase().includes(searchVal) : true;
+        const qrCode = String(q.qr_code || '').toLowerCase();
+        const deviceName = String(q.device_name || '').toLowerCase();
+
+        const matchCity = currentCityId
+          ? String(q.city_id) === String(currentCityId)
+          : true;
+
+        const matchSearch = searchVal
+          ? deviceName.includes(searchVal) || qrCode.includes(searchVal)
+          : true;
+
         const matchAssigned =
           assignedVal === 'yes' ? !!q.device_id :
           assignedVal === 'no'  ? !q.device_id  : true;
-        return matchCity && matchDevice && matchAssigned;
+
+        return matchCity && matchSearch && matchAssigned;
       });
 
       renderTable(filtered);
@@ -386,6 +411,7 @@
           <th>QR kodas</th>
           <th>QR vaizdas</th>
           <th>Įrenginio pavadinimas</th>
+          <th>Aprašymas</th>
           <th>Miestas</th>
           <th>Veiksmai</th>
         </tr>
@@ -404,8 +430,7 @@
         const actionsHtml = hasDevice
           ? `
             <button onclick="openRules(${q.device_id})">Taisyklės</button><br>
-            <button onclick="changeCity(${q.qr_id}, \`${cityName.replace(/`/g, '\\`')}\`)">Keisti miestą</button><br>
-            <button class="reset-btn" onclick="deleteDevice(${q.device_id})">Ištrinti įrenginį</button><br>
+            <button onclick="editDevice(${q.qr_id}, ${q.device_id}, \`${(q.device_name || '').replace(/`/g, '\\`')}\`, \`${(q.description || '').replace(/`/g, '\\`')}\`, ${q.city_id || 'null'})">Redaguoti</button><br>            <button class="reset-btn" onclick="deleteDevice(${q.device_id})">Ištrinti įrenginį</button><br>
             <button onclick="downloadQR('${q.qr_code}')">Parsisiųsti QR</button><br>
             ${qrDeleteBtn}
           `
@@ -420,6 +445,7 @@
           <td>${q.qr_code}</td>
           <td><div class="qr-container" id="${containerId}"></div></td>
           <td>${q.device_name || ''}</td>
+          <td>${q.description || ''}</td>
           <td>${cityName}</td>
           <td style="white-space: nowrap;">${actionsHtml}</td>
         `;
@@ -451,24 +477,55 @@
     }
 
     function assignDevice(qr_id) {
+      isEditing = false;
       currentQrId = qr_id;
+
       document.getElementById('deviceNameInput').value = '';
+      document.getElementById('deviceDescriptionInput').value = '';
       document.getElementById('citySelect').value = '';
+
+      document.querySelector('#assignModal h3').textContent = 'Priskirti įrenginį';
+      document.querySelector('#assignModal button').textContent = 'Patvirtinti';
+
+      document.getElementById('assignModal').style.display = 'block';
+    }
+
+
+    function editDevice(qrId, deviceId, deviceName, description, cityId) {
+      isEditing = true;
+      currentQrId = qrId;
+
+      document.getElementById('deviceNameInput').value = deviceName || '';
+      document.getElementById('deviceDescriptionInput').value = description || '';
+      document.getElementById('citySelect').value = cityId || '';
+
+      document.querySelector('#assignModal h3').textContent = 'Redaguoti įrenginį';
+      document.querySelector('#assignModal button').textContent = 'Išsaugoti';
+
       document.getElementById('assignModal').style.display = 'block';
     }
 
     async function confirmAssign() {
       const device_name = document.getElementById('deviceNameInput').value.trim();
+      const description = document.getElementById('deviceDescriptionInput').value.trim();
       const city_id = document.getElementById('citySelect').value;
       if (!device_name) return showMessage("Įveskite įrenginio pavadinimą", "error");
       if (!city_id) return showMessage("Pasirinkite miestą", "error");
 
       try {
-        const res = await fetch(`/qrcodes/${currentQrId}/assign_device`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ device_name, city_id: parseInt(city_id) })
-        });
+            const endpoint = isEditing
+              ? `/qrcodes/${currentQrId}/edit_device`
+              : `/qrcodes/${currentQrId}/assign_device`;
+
+            const res = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                device_name,
+                description,
+                city_id: parseInt(city_id)
+              })
+            });
         if (res.ok) {
           await loadAllQRCodes();
           showMessage(`Įrenginys "${device_name}" priskirtas`, "success");

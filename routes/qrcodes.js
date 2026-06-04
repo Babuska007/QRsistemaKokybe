@@ -36,7 +36,8 @@ router.get('/', async (req, res) => {
         c.code AS city_code,
         sg.group_name AS system_group_name,
         d.id AS device_id,
-        d.device_name
+        d.device_name,
+        d.description
       FROM qrcodes q
       LEFT JOIN devices d ON d.qr_id = q.qr_id
       LEFT JOIN cities c ON q.city_id = c.id
@@ -50,16 +51,24 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Assign a device to a QR code
 router.post('/:qrId/assign_device', async (req, res) => {
   const { qrId } = req.params;
-  const { device_name, city_id } = req.body;
+  const { device_name, description, city_id } = req.body;
+
   if (!device_name) return res.status(400).send("Missing device_name");
   if (!city_id) return res.status(400).send("Missing city_id");
 
   try {
-    await pool.execute("UPDATE qrcodes SET city_id = ? WHERE qr_id = ?", [city_id, qrId]);
-    await pool.execute("INSERT INTO devices (device_name, qr_id, city_id) VALUES (?, ?, ?)", [device_name, qrId, city_id]);
+    await pool.execute(
+      "UPDATE qrcodes SET city_id = ? WHERE qr_id = ?",
+      [city_id, qrId]
+    );
+
+    await pool.execute(
+      "INSERT INTO devices (device_name, description, qr_id, city_id) VALUES (?, ?, ?, ?)",
+      [device_name, description || null, qrId, city_id]
+    );
+
     res.send(`Device "${device_name}" mapped to QR code successfully`);
   } catch (err) {
     console.error(err);
@@ -80,6 +89,32 @@ router.post('/:qrId/change_city', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send("Error updating city");
+  }
+});
+
+// Edit assigned device
+router.post('/:qrId/edit_device', async (req, res) => {
+  const { qrId } = req.params;
+  const { device_name, description, city_id } = req.body;
+
+  if (!device_name) return res.status(400).send("Missing device_name");
+  if (!city_id) return res.status(400).send("Missing city_id");
+
+  try {
+    await pool.execute(
+      "UPDATE qrcodes SET city_id = ? WHERE qr_id = ?",
+      [city_id, qrId]
+    );
+
+    await pool.execute(
+      "UPDATE devices SET device_name = ?, description = ?, city_id = ? WHERE qr_id = ?",
+      [device_name, description || null, city_id, qrId]
+    );
+
+    res.send("Device updated successfully");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating device");
   }
 });
 
