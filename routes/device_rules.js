@@ -47,7 +47,6 @@ router.post('/:deviceId', async (req, res) => {
 
   try {
     if (rule_id) {
-      // ✅ UPDATE: nekeičia rule_id
       const [result] = await pool.execute(
         `UPDATE device_rules
          SET recurrence_type = ?,
@@ -78,7 +77,6 @@ router.post('/:deviceId', async (req, res) => {
       return res.send("Rules updated successfully");
     }
 
-    // Jei rule_id nepaduotas (pvz. pirmas kartas) – sukuriam naują
     const [insert] = await pool.execute(
       `INSERT INTO device_rules
        (device_id, recurrence_type, daily_interval, weekly_days, monthly_day, yearly_date, start_date, end_date)

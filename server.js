@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.APP_PORT || 3000;
@@ -93,7 +92,7 @@ app.use('/cities', requireAuth, citiesRoutes);
 app.use('/device_rules', requireAuth, deviceRulesRoutes);
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
 });

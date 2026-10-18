@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const pool = require('../config/database');
-const { addDays, addWeeks, addMonths, addYears, format, parseISO, getDay } = require('date-fns');
+const {format, parseISO, getDay } = require('date-fns');
 
 cron.schedule('03 15 * * *', async () => {
   try {
@@ -24,10 +24,8 @@ cron.schedule('03 15 * * *', async () => {
       let shouldCreateScan = false;
       
       if (rule.recurrence_type === 'daily') {
-        // MySQL DATE gali būti Date objektas, todėl parseISO nenaudojam
         const start = rule.start_date instanceof Date ? rule.start_date : parseISO(String(rule.start_date).slice(0, 10));
       
-        // normalizuojam į "vidurnaktį", kad nebūtų timezone/valandų šokinėjimo automatiškai pildant taisyklių laukelius
         const startMid = new Date(start.getFullYear(), start.getMonth(), start.getDate());
         const tomorrowMid = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
       

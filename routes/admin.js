@@ -67,12 +67,13 @@ router.post('/users/:id/reset-password', async (req, res) => {
 
   try {
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    const [result] = await pool.execute(
+    await pool.execute(
       'UPDATE admins SET password_hash = ? WHERE id = ?',
       [passwordHash, id]
     );
     res.send("Slaptažodis pakeistas");
   } catch (err) {
+    console.error(err);
     res.status(500).send("Klaida keičiant slaptažodį");
   }
 });

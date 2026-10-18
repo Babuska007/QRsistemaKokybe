@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - routes/groups.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/plato.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet" type="text/css">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="https://github.com/the-simian/es6-plato">ES6 Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+      <li class="active">
+        <a href="display.html">Summary Display</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>routes/groups.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">61.43</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">191</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">35.19</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">1.38</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">const express = require(&#039;express&#039;);
+const router = express.Router();
+const pool = require(&#039;../config/database&#039;);
+
+// Get all system groups (optionally filter by city)
+router.get(&#039;/&#039;, async (req, res) =&gt; {
+  try {
+    const { cityId } = req.query;
+    let sql = `
+      SELECT 
+        sg.id,
+        sg.city_id,
+        sg.group_name,
+        sg.description,
+        sg.created_at,
+        c.name AS city_name,
+        c.code AS city_code,
+        COUNT(DISTINCT q.qr_id) AS qr_count,
+        COUNT(DISTINCT d.id) AS device_count
+      FROM system_groups sg
+      LEFT JOIN cities c ON sg.city_id = c.id
+      LEFT JOIN qrcodes q ON q.system_group_id = sg.id
+      LEFT JOIN devices d ON d.system_group_id = sg.id
+    `;
+    
+    const params = [];
+    if (cityId) {
+      sql += &quot; WHERE sg.city_id = ?&quot;;
+      params.push(cityId);
+    }
+    
+    sql += &quot; GROUP BY sg.id ORDER BY c.name, sg.group_name&quot;;
+    
+    const [rows] = await pool.execute(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(&quot;Error fetching system groups&quot;);
+  }
+});
+
+// Create a new system group
+router.post(&#039;/&#039;, async (req, res) =&gt; {
+  const { city_id, group_name, description } = req.body;
+  
+  if (!city_id || !group_name) {
+    return res.status(400).send(&quot;Missing city_id or group_name&quot;);
+  }
+  
+  try {
+    const [result] = await pool.execute(
+      &quot;INSERT INTO system_groups (city_id, group_name, description) VALUES (?, ?, ?)&quot;,
+      [city_id, group_name, description || null]
+    );
+    
+    res.status(201).json({ 
+      id: result.insertId, 
+      message: &quot;System group created successfully&quot; 
+    });
+  } catch (err) {
+    if (err.code === &#039;ER_DUP_ENTRY&#039;) {
+      return res.status(400).send(&quot;Group with this name already exists in this city&quot;);
+    }
+    console.error(err);
+    res.status(500).send(&quot;Error creating system group&quot;);
+  }
+});
+
+// Update a system group
+router.put(&#039;/:id&#039;, async (req, res) =&gt; {
+  const { id } = req.params;
+  const { group_name, description } = req.body;
+  
+  if (!group_name) {
+    return res.status(400).send(&quot;Missing group_name&quot;);
+  }
+  
+  try {
+    await pool.execute(
+      &quot;UPDATE system_groups SET group_name = ?, description = ? WHERE id = ?&quot;,
+      [group_name, description || null, id]
+    );
+    res.send(&quot;System group updated successfully&quot;);
+  } catch (err) {
+    if (err.code === &#039;ER_DUP_ENTRY&#039;) {
+      return res.status(400).send(&quot;Group with this name already exists in this city&quot;);
+    }
+    console.error(err);
+    res.status(500).send(&quot;Error updating system group&quot;);
+  }
+});
+
+// Delete a system group
+router.delete(&#039;/:id&#039;, async (req, res) =&gt; {
+  const { id } = req.params;
+  
+  try {
+    await pool.execute(&quot;UPDATE qrcodes SET system_group_id = NULL WHERE system_group_id = ?&quot;, [id]);
+    await pool.execute(&quot;UPDATE devices SET system_group_id = NULL WHERE system_group_id = ?&quot;, [id]);
+    await pool.execute(&quot;DELETE FROM system_groups WHERE id = ?&quot;, [id]);
+    res.send(&quot;System group deleted successfully&quot;);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(&quot;Error deleting system group&quot;);
+  }
+});
+
+// Assign QR codes to a system group
+router.post(&#039;/:id/assign_qrcodes&#039;, async (req, res) =&gt; {
+  const { id } = req.params;
+  const { qr_ids } = req.body;
+  
+  if (!Array.isArray(qr_ids) || qr_ids.length === 0) {
+    return res.status(400).send(&quot;Invalid qr_ids array&quot;);
+  }
+  
+  try {
+    const placeholders = qr_ids.map(() =&gt; &#039;?&#039;).join(&#039;,&#039;);
+    await pool.execute(
+      `UPDATE qrcodes SET system_group_id = ? WHERE qr_id IN (${placeholders})`,
+      [id, ...qr_ids]
+    );
+    
+    await pool.execute(
+      `UPDATE devices SET system_group_id = ? WHERE qr_id IN (${placeholders})`,
+      [id, ...qr_ids]
+    );
+    
+    res.send(`${qr_ids.length} QR codes assigned to group`);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(&quot;Error assigning QR codes to group&quot;);
+  }
+});
+
+// Unassign QR codes from a system group
+router.post(&#039;/:id/unassign_qrcodes&#039;, async (req, res) =&gt; {
+  const { id } = req.params;
+  const { qr_ids } = req.body;
+  
+  if (!Array.isArray(qr_ids) || qr_ids.length === 0) {
+    return res.status(400).send(&quot;Invalid qr_ids array&quot;);
+  }
+  
+  try {
+    const placeholders = qr_ids.map(() =&gt; &#039;?&#039;).join(&#039;,&#039;);
+    await pool.execute(
+      `UPDATE qrcodes SET system_group_id = NULL WHERE qr_id IN (${placeholders}) AND system_group_id = ?`,
+      [...qr_ids, id]
+    );
+    
+    await pool.execute(
+      `UPDATE devices SET system_group_id = NULL WHERE qr_id IN (${placeholders}) AND system_group_id = ?`,
+      [...qr_ids, id]
+    );
+    
+    res.send(`${qr_ids.length} QR codes unassigned from group`);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(&quot;Error unassigning QR codes from group&quot;);
+  }
+});
+
+// Get QR codes for a specific group
+router.get(&#039;/:id/qrcodes&#039;, async (req, res) =&gt; {
+  const { id } = req.params;
+  
+  try {
+    const [rows] = await pool.execute(`
+      SELECT 
+        q.qr_id,
+        q.qr_code,
+        q.qr_image,
+        q.city_id,
+        q.system_group_id,
+        d.id AS device_id,
+        d.device_name
+      FROM qrcodes q
+      LEFT JOIN devices d ON d.qr_id = q.qr_id
+      WHERE q.system_group_id = ?
+      ORDER BY q.qr_id ASC
+    `, [id]);
+    
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(&quot;Error fetching QR codes for group&quot;);
+  }
+});
+
+module.exports = router;</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

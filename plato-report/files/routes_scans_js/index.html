@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - routes/scans.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/plato.css" rel="stylesheet" type="text/css">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet" type="text/css">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="https://github.com/the-simian/es6-plato">ES6 Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+      <li class="active">
+        <a href="display.html">Summary Display</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>routes/scans.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">48.47</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">184</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">21.40</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.91</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">const express = require(&#039;express&#039;);
+const router = express.Router();
+const pool = require(&#039;../config/database&#039;);
+
+// QR scan endpoint - shows PIN entry page
+router.get(&#039;/&#039;, async (req, res) =&gt; {
+  const qrId = req.query.qrId;
+  if (!qrId) return res.status(400).send(&quot;Klaida: trūksta qrId parametro&quot;);
+
+  try {
+    const [qrRows] = await pool.execute(
+      &quot;SELECT * FROM qrcodes WHERE qr_code = ?&quot;,
+      [qrId]
+    );
+    if (qrRows.length === 0) {
+      return res.status(404).send(&quot;QR kodas nerastas arba negaliojantis.&quot;);
+    }
+
+    const qr = qrRows[0];
+
+    const [deviceRows] = await pool.execute(
+      &quot;SELECT * FROM devices WHERE qr_id = ?&quot;,
+      [qr.qr_id]
+    );
+    if (deviceRows.length === 0) {
+      return res.status(404).send(`
+        Šiam QR kodui nepriskirtas joks įrenginys.&lt;br&gt;
+        &lt;strong&gt;${qr.qr_code}&lt;/strong&gt;
+      `);
+    }
+
+    const device = deviceRows[0];
+
+    const [todayRows] = await pool.execute(
+      &quot;SELECT scan_id, is_scanned FROM scans WHERE device_id = ? AND DATE(scan_timestamp) = CURDATE() LIMIT 1&quot;,
+      [device.id]
+    );
+
+    if (todayRows.length === 0) {
+      return res
+        .status(403)
+        .send(&quot;Šiandien šiam įrenginiui skenavimas nesuplanuotas.&quot;);
+    }
+
+    res.send(`
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;lt&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot; /&gt;
+  &lt;title&gt;QR patvirtinimas&lt;/title&gt;
+  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+  &lt;style&gt;
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    input {
+      font-size: 24px; padding: 10px; width: 140px;
+      text-align: center; letter-spacing: 6px;
+    }
+    button {
+      margin-top: 12px; padding: 10px 20px; font-size: 16px;
+    }
+    #message { margin-top: 15px; font-weight: bold; min-height: 20px; }
+    .success { color: #155724; }
+    .error { color: #721c24; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h2&gt;Įrenginys: ${device.device_name}&lt;/h2&gt;
+  &lt;p&gt;Įveskite savo 4 skaitmenų kodą:&lt;/p&gt;
+
+  &lt;input id=&quot;pinInput&quot; type=&quot;tel&quot; inputmode=&quot;numeric&quot; maxlength=&quot;4&quot; /&gt;
+
+  &lt;br /&gt;
+  &lt;button onclick=&quot;submitCode()&quot;&gt;Patvirtinti&lt;/button&gt;
+
+  &lt;div id=&quot;message&quot;&gt;&lt;/div&gt;
+
+  &lt;script&gt;
+    const deviceId = ${device.id};
+
+    async function submitCode() {
+      const pin = document.getElementById(&#039;pinInput&#039;).value.trim();
+      if (!/^\\d{4}$/.test(pin)) {
+        showMessage(&quot;Kodas turi būti tik 4 skaitmenys&quot;, &quot;error&quot;);
+        return;
+      }
+
+      const res = await fetch(&#039;/scan/confirm&#039;, {
+        method: &#039;POST&#039;,
+        headers: { &#039;Content-Type&#039;: &#039;application/json&#039; },
+        body: JSON.stringify({ device_id: deviceId, pin_code: pin })
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        showMessage(data.message, &quot;error&quot;);
+      } else {
+        showMessage(data.message, &quot;success&quot;);
+      }
+    }
+
+    function showMessage(text, type) {
+      const el = document.getElementById(&#039;message&#039;);
+      el.textContent = text;
+      el.className = type;
+    }
+
+    document.getElementById(&#039;pinInput&#039;).focus();
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+    `);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(&quot;Klaida apdorojant QR&quot;);
+  }
+});
+
+// Confirm scan with PIN
+router.post(&#039;/confirm&#039;, async (req, res) =&gt; {
+  const { device_id, pin_code } = req.body;
+
+  if (!device_id || !pin_code) {
+    return res.status(400).json({ success: false, message: &quot;Trūksta duomenų&quot; });
+  }
+
+  const pinStr = String(pin_code).trim();
+  if (!/^\d{4}$/.test(pinStr)) {
+    return res.status(400).json({ success: false, message: &quot;Kodas turi būti 4 skaitmenys&quot; });
+  }
+
+  try {
+    const [userRows] = await pool.execute(
+      &quot;SELECT id, first_name, last_name FROM users WHERE pin_code = ? AND is_active = 1&quot;,
+      [pinStr]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(400).json({ success: false, message: &quot;Toks kodas neegzistuoja&quot; });
+    }
+
+    const user = userRows[0];
+
+    const [todayRows] = await pool.execute(
+      &quot;SELECT scan_id, is_scanned FROM scans WHERE device_id = ? AND DATE(scan_timestamp) = CURDATE() LIMIT 1&quot;,
+      [device_id]
+    );
+
+    if (todayRows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: &quot;Šiandien šiam įrenginiui skenavimas nesuplanuotas.&quot;
+      });
+    }
+
+    const scan = todayRows[0];
+
+    if (scan.is_scanned) {
+      return res.json({
+        success: true,
+        message: `Šis įrenginys jau nuskenuotas šiandien. Ačiū, ${user.first_name} ${user.last_name}!`
+      });
+    }
+
+    await pool.execute(
+      &quot;UPDATE scans SET is_scanned = 1, scan_timestamp = NOW(), user_id = ? WHERE scan_id = ?&quot;,
+      [user.id, scan.scan_id]
+    );
+
+    return res.json({
+      success: true,
+      message: `Patvirtinta. Ačiū, ${user.first_name} ${user.last_name}!`
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: &quot;Klaida tvirtinant skenavimą&quot;
+    });
+  }
+});
+
+module.exports = router;</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

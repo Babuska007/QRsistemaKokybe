@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 
-const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL;
-
 // Bulk create QR codes
 router.post('/bulk', async (req, res) => {
   const { count } = req.body;
